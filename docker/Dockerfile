@@ -28,6 +28,7 @@ RUN NODE_ENV=development npm install \
     compression \
     dotenv \
     express \
+    k8s \
     serve-static \
   && rm -rf \
   /root/.npm \

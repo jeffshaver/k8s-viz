@@ -3,7 +3,7 @@ import mergeNodesAndLinks from './merge-nodes-and-links'
 import render from './render'
 
 const fetchData = () => {
-  return fetch('http://localhost:3000/namespaces')
+  return fetch(`${window.location.origin}/namespaces`)
   .then((response) => response.json())
   .then((graph) => {
     const shouldRerender = mergeNodesAndLinks(graph)

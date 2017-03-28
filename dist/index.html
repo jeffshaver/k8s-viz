@@ -1,0 +1,68 @@
+<html>
+  <head>
+    <style>
+    @font-face {
+      font-family: 'Roboto';
+      font-style: normal;
+      font-weight: 300;
+      src: local('Roboto Light'),
+           local('Roboto-Light'),
+           url(fonts/roboto-light.woff2) format('woff2'),
+           url(fonts/roboto-light.ttf) format('truetype');
+    }
+    @font-face {
+      font-family: 'Roboto';
+      font-style: normal;
+      font-weight: 400;
+      src: local('Roboto'),
+           local('Roboto-Regular'),
+           url(fonts/roboto-regular.woff2) format('woff2')
+           url(fonts/roboto-regular.ttf) format('truetype');
+    }
+    @font-face {
+      font-family: 'Roboto';
+      font-style: normal;
+      font-weight: 500;
+      src: local('Roboto Medium'),
+           local('Roboto-Medium'),
+           url(fonts/roboto-medium.woff2) format('woff2'),
+           url(fonts/roboto-medium.ttf) format('truetype');
+    }
+    body {
+      background: #222222;
+      font-family: Roboto, sans-serif;
+      font-weight: 300;
+    }
+    #chart {
+      height: 600;
+      position: relative;
+      width: 960;
+    }
+    .links line {
+      stroke: #999;
+      stroke-opacity: 0.6;
+    }
+
+    .nodes circle {
+      stroke-width: 1.5px;
+    }
+
+    .tooltip {
+      background: #eee;
+      box-shadow: 0 0 5px #999999;
+      color: #333;
+      display: none;
+      font-size: 14px;
+      padding: 10px;
+      position: absolute;
+      z-index: 10;
+    }
+    </style>
+  </head>
+  <body>
+    <div id="chart">
+      <svg height="600" width="960"></svg>
+    </div>
+    <script src="bundle.js"></script>
+  </body>
+</html>

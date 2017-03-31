@@ -1,22 +1,43 @@
-import fetch from 'isomorphic-fetch'
+/* global WebSocket */
+// import fetch from 'isomorphic-fetch'
 import mergeNodesAndLinks from './merge-nodes-and-links'
 import render from './render'
 
-const fetchData = () => {
-  return fetch(`${window.location.origin}/namespaces`)
-  .then((response) => response.json())
-  .then((graph) => {
-    const shouldRerender = mergeNodesAndLinks(graph)
+let reconnectInterval
+const websocketURI = `ws://${window.location.host}/namespaces`
 
-    return Promise.resolve(shouldRerender)
+createWebsocket(websocketURI)
+
+function createWebsocket (uri) {
+  const websocket = new WebSocket(uri)
+
+  websocket.addEventListener('open', () => {
+    clearInterval(reconnectInterval)
+
+    console.log('websocket opened')
   })
-  .then((shouldRerender) => {
+
+  websocket.addEventListener('close', () => {
+    console.log('websocket closed')
+
+    reconnectInterval = setInterval(() => {
+      console.log('re-connecting websocket')
+      createWebsocket(websocketURI)
+    }, 2000)
+  })
+
+  websocket.addEventListener('message', (event) => {
+    const data = JSON.parse(event.data)
+    const shouldRerender = mergeNodesAndLinks(data)
+
     if (!shouldRerender) {
-      return Promise.resolve()
+      return
     }
 
-    return render()
-  })
-}
+    console.log('data recieved, calling render')
 
-export default fetchData
+    render(data)
+  })
+
+  return websocket
+}

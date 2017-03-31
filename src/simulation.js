@@ -10,6 +10,7 @@ import {
   height,
   link,
   node,
+  nodes,
   width
 } from './constants'
 
@@ -22,7 +23,7 @@ const simulation = forceSimulation()
   .alphaTarget(0)
   .alphaDecay(0.05)
   .on('tick', onTick)
-  // .on('end', function () {console.log('end')})
+  .on('end', onEnd)
 
 function onTick () {
   link
@@ -33,6 +34,13 @@ function onTick () {
   node
     .attr('cx', (d) => d.x)
     .attr('cy', (d) => d.y)
+}
+
+function onEnd () {
+  nodes.forEach((node) => {
+    node.fx = node.x
+    node.fy = node.y
+  })
 }
 
 export default simulation

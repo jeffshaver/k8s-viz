@@ -23,7 +23,7 @@ const simulation = forceSimulation()
   .alphaTarget(0)
   .alphaDecay(0.05)
   .on('tick', onTick)
-  .on('end', onEnd)
+  // .on('end', onEnd)
 
 function onTick () {
   link
@@ -36,11 +36,11 @@ function onTick () {
     .attr('cy', (d) => d.y)
 }
 
-function onEnd () {
-  nodes.forEach((node) => {
-    node.fx = node.x
-    node.fy = node.y
-  })
-}
+// function onEnd () {
+//   nodes.forEach((node) => {
+//     node.fx = node.x
+//     node.fy = node.y
+//   })
+// }
 
 export default simulation

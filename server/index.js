@@ -1,4 +1,4 @@
-require('dotenv').config({silent: true})
+require('dotenv').config({path: '../.env', silent: true})
 
 const path = require('path')
 const express = require('express')

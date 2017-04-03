@@ -24,16 +24,17 @@ RUN NODE_ENV=development npm install \
     /mp-viz \
     /opt/app/node_modules \
     /opt/app/yarn.lock \
-  && npm install \
-    compression \
-    dotenv \
-    express \
-    express-ws \
-    k8s \
-    serve-static \
   && rm -rf \
   /root/.npm \
   /tmp/npm*
 
+WORKDIR /opt/app/server
+
+RUN npm install \
+  && rm -rf \
+  /root/.npm \
+  /tmp/npm*
+
+
 EXPOSE $PORT
-CMD ["node", "server.js"]
+CMD ["node", "index.js"]

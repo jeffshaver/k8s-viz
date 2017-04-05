@@ -1,5 +1,5 @@
 import is from 'is'
-import {nodes} from './constants'
+import {height, nodes, width} from './constants'
 
 const modifyExistingNodes = (shouldRerender, node) => {
   const existingIndex = nodes.findIndex((d) => {
@@ -18,6 +18,7 @@ const modifyExistingNodes = (shouldRerender, node) => {
   }
 
   nodes[existingIndex] = Object.assign(nodes[existingIndex], node)
+
   shouldRerender = true
 
   return shouldRerender

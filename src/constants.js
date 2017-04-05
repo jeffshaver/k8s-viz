@@ -6,27 +6,24 @@ const svgWidth = svg.style('width')
 const height = +svgHeight.substring(0, svgHeight.length - 2)
 const width = +svgWidth.substring(0, svgWidth.length - 2)
 let link = svg.append('g').attr('class', 'links').selectAll('line')
-let links = []
+const links = []
 let mouseIsDown = false
 let node = svg.append('g').attr('class', 'nodes').selectAll('circle')
-let nodes = []
+const nodes = []
 let prevNodesLength = nodes.length
 let renderTimeout
+const namespaces = []
+const deployments = []
+const pods = []
 
 const setLink = (newLink) => {
   link = newLink
-}
-const setLinks = (newLinks) => {
-  links = newLinks
 }
 const setMouseIsDown = (newMouseIsDown) => {
   mouseIsDown = newMouseIsDown
 }
 const setNode = (newNode) => {
   node = newNode
-}
-const setNodes = (newNodes) => {
-  nodes = newNodes
 }
 const setPrevNodesLength = (newNodesLength) => {
   prevNodesLength = newNodesLength
@@ -46,19 +43,20 @@ const tooltip = select('#chart').append('div').attr('class', 'tooltip')
 tooltip.append('div').attr('class', 'name')
 
 export {
+  deployments,
   height,
   link,
   links,
   mouseIsDown,
+  namespaces,
   node,
   nodes,
+  pods,
   prevNodesLength,
   renderTimeout,
   setLink,
-  setLinks,
   setMouseIsDown,
   setNode,
-  setNodes,
   setPrevNodesLength,
   setRenderTimeout,
   svg,

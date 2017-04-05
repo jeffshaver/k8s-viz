@@ -46,23 +46,28 @@ const modifyNamespaces = modifyOnWatch(namespaces)
 const modifyDeployments = modifyOnWatch(deployments)
 const modifyPods = modifyOnWatch(pods)
 
-kubeApi.watch('watch/namespaces', (data) => {
-  modifyNamespaces(data, websockets, namespaces, deployments, pods)
-}, (err) => {
-  console.log(err)
-})
+const connect = () => {
+  process.stdout.write('connecting\n')
+  kubeApi.watch('watch/namespaces', (data) => {
+    modifyNamespaces(Object.assign(data, {nodeType: 'namespace'}), websockets, namespaces, deployments, pods)
+  }, () => {
 
-kubeApi.watch('watch/replicationcontrollers', (data) => {
-  modifyDeployments(data, websockets, namespaces, deployments, pods)
-}, (err) => {
-  console.log(err)
-})
+  })
 
-kubeApi.watch('watch/pods', (data) => {
-  modifyPods(data, websockets, namespaces, deployments, pods)
-}, (err) => {
-  console.log(err)
-})
+  kubeApi.watch('watch/replicationcontrollers', (data) => {
+    modifyDeployments(Object.assign(data, {nodeType: 'deployment'}), websockets, namespaces, deployments, pods)
+  }, () => {
+
+  })
+
+  kubeApi.watch('watch/pods', (data) => {
+    modifyPods(Object.assign(data, {nodeType: 'pod'}), websockets, namespaces, deployments, pods)
+  }, () => {
+
+  })
+}
+
+connect()
 
 app.listen(3000, () => {
   console.log('app listening on port 3000')

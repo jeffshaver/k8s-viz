@@ -1,6 +1,6 @@
 const sendNodesAndLinks = require('./send-nodes-and-links')
 
-const modifyOnWatch = (array, batch = true) => {
+const modifyOnWatch = (array) => {
   return function (data, websockets, namespaces, deployments, pods) {
     if (!['ADDED', 'MODIFIED', 'DELETED'].includes(data.type)) {
       return
@@ -25,7 +25,7 @@ const modifyOnWatch = (array, batch = true) => {
       array.splice(existingIndex, 1)
     }
 
-    return sendNodesAndLinks(websockets, namespaces, deployments, pods)
+    return sendNodesAndLinks(websockets, data)
   }
 }
 

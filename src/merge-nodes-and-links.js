@@ -3,11 +3,9 @@ import modifyExistingNodes from './modify-existing-nodes'
 import removeDeletedLinks from './remove-deleted-links'
 import removeDeletedNodes from './remove-deleted-nodes'
 import {
-  height,
   links,
   nodes,
-  setPrevNodesLength,
-  width
+  setPrevNodesLength
 } from './constants'
 
 let shouldRerender = false
@@ -30,11 +28,6 @@ function mergeNodesAndLinks (graph) {
   graph.links.forEach((link) => {
     shouldRerender = modifyExistingLinks(shouldRerender, link)
   })
-
-  if (nodes[0]) {
-    nodes[0].fx = width / 2
-    nodes[0].fy = height / 2
-  }
 
   return shouldRerender
 }

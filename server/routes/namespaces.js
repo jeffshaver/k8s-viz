@@ -10,7 +10,11 @@ const namespaces = (websockets, ws, namespaces, deployments, pods) => {
     websockets.splice(index, 1)
   })
 
-  sendNodesAndLinks([ws], namespaces, deployments, pods)
+  ws.send(JSON.stringify({
+    namespaces,
+    deployments,
+    pods
+  }))
 }
 
 module.exports = namespaces

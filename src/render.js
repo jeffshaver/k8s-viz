@@ -52,8 +52,8 @@ const render = () => {
 
   simulation.nodes(nodes)
   simulation.force('link').links(links)
-  if (nodes.length !== prevNodesLength) {
-    simulation.alphaTarget(0.3)
+  if (nodes.length > prevNodesLength) {
+    simulation.alphaTarget(0.1)
   }
   simulation.restart()
 

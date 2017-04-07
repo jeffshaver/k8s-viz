@@ -45,26 +45,54 @@ app.get('*', (req, res) => {
 const modifyNamespaces = modifyOnWatch(namespaces)
 const modifyDeployments = modifyOnWatch(deployments)
 const modifyPods = modifyOnWatch(pods)
+const openConnections = {
+  namespaces: false,
+  deployments: false,
+  pods: false
+}
+const typeMap = {
+  Namespace: 'namespace',
+  Pod: 'pod',
+  ReplicationController: 'deployment'
+}
+
+const onWatchSuccess = (modifyFn, connectionName) => {
+  return (data) => {
+    data = Object.assign(data, {nodeType: typeMap[data.object.kind]})
+    openConnections[connectionName] = true
+    modifyFn(data, websockets, namespaces, deployments, pods)
+  }
+}
+const onWatchError = (connectionName) => {
+  return () => {
+    openConnections[connectionName] = false
+    if (Object.values(openConnections).includes(true)) {
+      return
+    }
+
+    connect()
+  }
+}
 
 const connect = () => {
   process.stdout.write('connecting\n')
-  kubeApi.watch('watch/namespaces', (data) => {
-    modifyNamespaces(Object.assign(data, {nodeType: 'namespace'}), websockets, namespaces, deployments, pods)
-  }, () => {
+  kubeApi.watch(
+    'watch/namespaces',
+    onWatchSuccess(modifyNamespaces, 'namespaces'),
+    onWatchError('namespaces')
+  )
 
-  })
+  kubeApi.watch(
+    'watch/replicationcontrollers',
+    onWatchSuccess(modifyDeployments, 'deployments'),
+    onWatchError('deployments')
+  )
 
-  kubeApi.watch('watch/replicationcontrollers', (data) => {
-    modifyDeployments(Object.assign(data, {nodeType: 'deployment'}), websockets, namespaces, deployments, pods)
-  }, () => {
-
-  })
-
-  kubeApi.watch('watch/pods', (data) => {
-    modifyPods(Object.assign(data, {nodeType: 'pod'}), websockets, namespaces, deployments, pods)
-  }, () => {
-
-  })
+  kubeApi.watch(
+    'watch/pods',
+    onWatchSuccess(modifyPods, 'pods'),
+    onWatchError('pods')
+  )
 }
 
 connect()

@@ -27,7 +27,7 @@ websocket.addEventListener('message', (event) => {
       return item.metadata.uid === eventData.object.metadata.uid
     })
 
-    if (eventData.type === 'ADDED') {
+    if (existingIndex === -1 && eventData.type === 'ADDED') {
       eventData.object.x = width / 2
       eventData.object.y = height / 2
       array.push(eventData.object)

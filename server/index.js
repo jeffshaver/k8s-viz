@@ -65,10 +65,15 @@ const onWatchSuccess = (modifyFn, connectionName) => {
 }
 const onWatchError = (connectionName) => {
   return () => {
+    console.log(connectionName, 'closed')
     openConnections[connectionName] = false
     if (Object.values(openConnections).includes(true)) {
+      console.log('at least one connection open')
+      
       return
     }
+
+    console.log('all connections closed, reconnecting')
 
     connect()
   }

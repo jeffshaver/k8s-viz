@@ -15,6 +15,7 @@ let renderTimeout
 const namespaces = []
 const deployments = []
 const pods = []
+const eventLogElement = document.querySelector('ul')
 
 const setLink = (newLink) => {
   link = newLink
@@ -44,6 +45,7 @@ tooltip.append('div').attr('class', 'name')
 
 export {
   deployments,
+  eventLogElement,
   height,
   link,
   links,

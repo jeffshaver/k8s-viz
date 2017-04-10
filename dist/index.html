@@ -30,8 +30,14 @@
     }
     body {
       background: #222222;
+      box-sizing: border-box;
       font-family: Roboto, sans-serif;
       font-weight: 300;
+      margin: 0;
+    }
+    body * {
+      box-sizing: inherit !important;
+      font-family: inherit !important;
     }
     #chart {
       height: 100%;
@@ -57,12 +63,30 @@
       position: absolute;
       z-index: 10;
     }
+
+    ul {
+      color: white;
+      height: 200px;
+      width: 100%;
+      position: absolute;
+      bottom: 0;
+      list-style: none;
+      overflow: auto;
+      margin: 0;
+      padding: 0;
+    }
+
+    ul li {
+      padding: .25em;
+    }
     </style>
   </head>
   <body>
     <div id="chart">
       <svg height="100%" width="100%"></svg>
     </div>
+    <ul>
+    </ul>
     <script src="bundle.js"></script>
   </body>
 </html>

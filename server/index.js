@@ -56,6 +56,7 @@ const typeMap = {
   ReplicationController: 'deployment'
 }
 
+const watchTimeout = 300000
 const onWatchSuccess = (modifyFn, connectionName) => {
   return (data) => {
     data = Object.assign(data, {nodeType: typeMap[data.object.kind]})
@@ -69,7 +70,7 @@ const onWatchError = (connectionName) => {
     openConnections[connectionName] = false
     if (Object.values(openConnections).includes(true)) {
       console.log('at least one connection open')
-      
+
       return
     }
 
@@ -84,19 +85,22 @@ const connect = () => {
   kubeApi.watch(
     'watch/namespaces',
     onWatchSuccess(modifyNamespaces, 'namespaces'),
-    onWatchError('namespaces')
+    onWatchError('namespaces'),
+    watchTimeout
   )
 
   kubeApi.watch(
     'watch/replicationcontrollers',
     onWatchSuccess(modifyDeployments, 'deployments'),
-    onWatchError('deployments')
+    onWatchError('deployments'),
+    watchTimeout
   )
 
   kubeApi.watch(
     'watch/pods',
     onWatchSuccess(modifyPods, 'pods'),
-    onWatchError('pods')
+    onWatchError('pods'),
+    watchTimeout
   )
 }
 

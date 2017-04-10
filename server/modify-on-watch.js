@@ -10,7 +10,7 @@ const modifyOnWatch = (array) => {
       return item.metadata.uid === data.object.metadata.uid
     })
 
-    if (data.type === 'ADDED') {
+    if (data.type === 'ADDED' && existingIndex === -1) {
       array.push(data.object)
     }
 
@@ -19,9 +19,6 @@ const modifyOnWatch = (array) => {
     }
 
     if (data.type === 'DELETED') {
-      if (existingIndex === -1) {
-        console.log('fdjaskfdsafdasf')
-      }
       array.splice(existingIndex, 1)
     }
 

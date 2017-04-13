@@ -1,5 +1,3 @@
-const sendNodesAndLinks = require('../send-nodes-and-links')
-
 const namespaces = (websockets, ws, namespaces, deployments, pods) => {
   websockets.push(ws)
   ws.on('close', () => {

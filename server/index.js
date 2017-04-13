@@ -34,12 +34,12 @@ const namespaces = []
 const deployments = []
 const pods = []
 
-app.use('/bundle.js', serveStatic(path.join(__dirname, '../', 'dist/bundle.js')))
+app.use('/bundle.js', serveStatic(path.join(__dirname, '../', 'client/dist/bundle.js')))
 app.ws('/namespaces', (ws) => {
   namespacesRoute(websockets, ws, namespaces, deployments, pods)
 })
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../', 'dist/index.html'))
+  res.sendFile(path.join(__dirname, '../', 'client/dist/index.html'))
 })
 
 const modifyNamespaces = modifyOnWatch(namespaces)
@@ -56,7 +56,7 @@ const typeMap = {
   ReplicationController: 'deployment'
 }
 
-const watchTimeout = 300000
+const watchTimeout = 90000
 const onWatchSuccess = (modifyFn, connectionName) => {
   return (data) => {
     data = Object.assign(data, {nodeType: typeMap[data.object.kind]})
@@ -64,47 +64,44 @@ const onWatchSuccess = (modifyFn, connectionName) => {
     modifyFn(data, websockets, namespaces, deployments, pods)
   }
 }
-const onWatchError = (connectionName) => {
+const onWatchError = (connectionName, connect) => {
   return () => {
-    console.log(connectionName, 'closed')
-    openConnections[connectionName] = false
-    if (Object.values(openConnections).includes(true)) {
-      console.log('at least one connection open')
-
-      return
-    }
-
-    console.log('all connections closed, reconnecting')
+    // console.log(connectionName, 'closed; reconnecting')
 
     connect()
   }
 }
 
-const connect = () => {
-  process.stdout.write('connecting\n')
+const connectNamespaces = () => {
   kubeApi.watch(
     'watch/namespaces',
     onWatchSuccess(modifyNamespaces, 'namespaces'),
-    onWatchError('namespaces'),
-    watchTimeout
-  )
-
-  kubeApi.watch(
-    'watch/replicationcontrollers',
-    onWatchSuccess(modifyDeployments, 'deployments'),
-    onWatchError('deployments'),
-    watchTimeout
-  )
-
-  kubeApi.watch(
-    'watch/pods',
-    onWatchSuccess(modifyPods, 'pods'),
-    onWatchError('pods'),
+    onWatchError('namespaces', connectNamespaces),
     watchTimeout
   )
 }
 
-connect()
+const connectDeployments = () => {
+  kubeApi.watch(
+    'watch/replicationcontrollers',
+    onWatchSuccess(modifyDeployments, 'deployments'),
+    onWatchError('deployments', connectDeployments),
+    watchTimeout
+  )
+}
+
+const connectPods = () => {
+  kubeApi.watch(
+    'watch/pods',
+    onWatchSuccess(modifyPods, 'pods'),
+    onWatchError('pods', connectPods),
+    watchTimeout
+  )
+}
+
+connectNamespaces()
+connectDeployments()
+connectPods()
 
 app.listen(3000, () => {
   console.log('app listening on port 3000')

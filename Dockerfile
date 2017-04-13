@@ -8,32 +8,35 @@ ARG PORT=3000
 
 ENV PORT ${PORT}
 
-WORKDIR /opt/app
+WORKDIR /opt/app/client
 
-COPY package.json /opt/app/package.json
+COPY client/package.json /opt/app/client/package.json
+
 RUN npm install \
   && rm -rf \
     /root/.npm \
     /tmp/npm
+
+WORKDIR /opt/app/server
 
 COPY server/package.json /opt/app/server/package.json
 
-WORKDIR /opt/app/server
-
 RUN npm install \
   && rm -rf \
     /root/.npm \
     /tmp/npm
 
-WORKDIR /opt/app
+WORKDIR /opt/app/client
 
-COPY . /opt/app/
+COPY client/. /opt/app/client/.
 
 RUN npm run build \
   && rm -rf \
-    /opt/app/node_modules
+  /opt/app/client/node_modules
 
 WORKDIR /opt/app/server
+
+COPY server/. /opt/app/server/.
 
 EXPOSE $PORT
 CMD ["node", "index.js"]

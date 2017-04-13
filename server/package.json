@@ -19,6 +19,7 @@
     "serve-static": "^1.12.1"
   },
   "devDependencies": {
+    "babel-eslint": "^7.2.1",
     "eslint": "^3.18.0",
     "eslint-config-standard": "^7.1.0",
     "eslint-plugin-import": "^2.2.0",

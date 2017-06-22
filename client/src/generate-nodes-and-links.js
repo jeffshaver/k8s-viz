@@ -84,7 +84,13 @@ const generateNodesAndLinks = ({namespaces, deployments, pods}) => {
     }
 
     const deploymentNode = deploymentNodes.find((deploymentNode) => {
-      return pod.metadata.namespace + '_' + pod.metadata.labels.deployment === deploymentNode.id
+      const {ownerReference} = pod.metadata
+
+      if (!ownerReference) {
+        return
+      }
+
+      return pod.metadata.namespace + '_' + ownerReference.name === deploymentNode.id
     })
 
     if (!deploymentNode) {

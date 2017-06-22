@@ -11,7 +11,8 @@ const modifyOnWatch = require('./modify-on-watch')
 
 const {
   KUBERNETES_ENDPOINT,
-  KUBERNETES_TOKEN
+  KUBERNETES_TOKEN,
+  NAMESPACE
 } = process.env
 const kubeApi = k8s.api({
   auth: {
@@ -72,9 +73,17 @@ const onWatchError = (connectionName, connect) => {
   }
 }
 
+const namespacesEndpoint = `watch/namespaces${NAMESPACE ? '/' + NAMESPACE : ''}`
+const deploymentsEndpoint = NAMESPACE
+  ? `watch/namespaces/${NAMESPACE}/replicationcontrollers`
+  : 'watch/replicationcontrollers'
+const podsEndpoint = NAMESPACE
+  ? `watch/namespaces/${NAMESPACE}/pods`
+  : 'watch/pods'
+
 const connectNamespaces = () => {
   kubeApi.watch(
-    'watch/namespaces',
+    namespacesEndpoint,
     onWatchSuccess(modifyNamespaces, 'namespaces'),
     onWatchError('namespaces', connectNamespaces),
     watchTimeout
@@ -83,7 +92,7 @@ const connectNamespaces = () => {
 
 const connectDeployments = () => {
   kubeApi.watch(
-    'watch/replicationcontrollers',
+    deploymentsEndpoint,
     onWatchSuccess(modifyDeployments, 'deployments'),
     onWatchError('deployments', connectDeployments),
     watchTimeout
@@ -92,7 +101,7 @@ const connectDeployments = () => {
 
 const connectPods = () => {
   kubeApi.watch(
-    'watch/pods',
+    podsEndpoint,
     onWatchSuccess(modifyPods, 'pods'),
     onWatchError('pods', connectPods),
     watchTimeout

@@ -10,7 +10,7 @@ const getLatestDeployments = (deployments) => {
   const latestDeployments = {}
 
   deployments.forEach((deployment) => {
-    const deploymentName = deployment.spec.selector.deploymentconfig
+    const deploymentName = deployment.metadata.name
 
     if (!latestDeployments[deploymentName]) {
       latestDeployments[deploymentName] = deployment

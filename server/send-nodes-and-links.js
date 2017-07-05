@@ -1,5 +1,5 @@
 const sendNodesAndLinks = (websockets, data) => {
-  websockets.forEach((ws) => {
+  websockets.forEach(ws => {
     ws.send(JSON.stringify(data))
   })
 }

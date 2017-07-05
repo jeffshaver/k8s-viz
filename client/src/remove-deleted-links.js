@@ -1,7 +1,7 @@
-import {links} from './constants'
+import { links } from './constants'
 
 const removeDeletedLinks = (shouldRerender, graph, link, i) => {
-  const existingIndex = graph.links.findIndex((d) => {
+  const existingIndex = graph.links.findIndex(d => {
     if (typeof link.source === 'object') {
       return d.source + '-' + d.target === link.source.id + '-' + link.target.id
     }

@@ -1,4 +1,4 @@
-import {select} from 'd3'
+import { select } from 'd3'
 
 const svg = select('svg')
 const svgHeight = svg.style('height')
@@ -13,23 +13,24 @@ const nodes = []
 let prevNodesLength = nodes.length
 let renderTimeout
 const namespaces = []
+const daemonsets = []
 const deployments = []
 const pods = []
 const eventLogElement = document.querySelector('ul')
 
-const setLink = (newLink) => {
+const setLink = newLink => {
   link = newLink
 }
-const setMouseIsDown = (newMouseIsDown) => {
+const setMouseIsDown = newMouseIsDown => {
   mouseIsDown = newMouseIsDown
 }
-const setNode = (newNode) => {
+const setNode = newNode => {
   node = newNode
 }
-const setPrevNodesLength = (newNodesLength) => {
+const setPrevNodesLength = newNodesLength => {
   prevNodesLength = newNodesLength
 }
-const setRenderTimeout = (newRenderTimeout) => {
+const setRenderTimeout = newRenderTimeout => {
   if (newRenderTimeout === null) {
     clearTimeout(renderTimeout)
 
@@ -44,6 +45,7 @@ const tooltip = select('#chart').append('div').attr('class', 'tooltip')
 tooltip.append('div').attr('class', 'name')
 
 export {
+  daemonsets,
   deployments,
   eventLogElement,
   height,

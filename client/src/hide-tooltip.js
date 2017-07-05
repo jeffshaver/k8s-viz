@@ -1,4 +1,4 @@
-import {tooltip} from './constants'
+import { tooltip } from './constants'
 
 const hideTooltip = () => {
   tooltip.style('display', 'none')

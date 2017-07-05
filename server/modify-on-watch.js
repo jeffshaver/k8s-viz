@@ -1,12 +1,12 @@
 const sendNodesAndLinks = require('./send-nodes-and-links')
 
-const modifyOnWatch = (array) => {
-  return function (data, websockets, namespaces, deployments, pods) {
+const modifyOnWatch = array => {
+  return function(data, websockets, namespaces, deployments, pods) {
     if (!['ADDED', 'MODIFIED', 'DELETED'].includes(data.type)) {
       return
     }
 
-    const existingIndex = array.findIndex((item) => {
+    const existingIndex = array.findIndex(item => {
       return item.metadata.uid === data.object.metadata.uid
     })
 

@@ -34,7 +34,7 @@ rules:
   no-var: 2
   object-curly-spacing:
     - 2
-    - "never"
+    - "always"
   padded-blocks:
     - 2
     - blocks: "never"
@@ -55,4 +55,7 @@ rules:
   sort-vars:
     - 2
     - ignoreCase: true
+  space-before-function-paren:
+    - 2
+    - "never"
   import/no-named-as-default: 0

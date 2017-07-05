@@ -1,8 +1,8 @@
 import is from 'is'
-import {height, nodes, width} from './constants'
+import { nodes } from './constants'
 
 const modifyExistingNodes = (shouldRerender, node) => {
-  const existingIndex = nodes.findIndex((d) => {
+  const existingIndex = nodes.findIndex(d => {
     return d.id === node.id
   })
 
@@ -13,7 +13,12 @@ const modifyExistingNodes = (shouldRerender, node) => {
     return shouldRerender
   }
 
-  if (is.equal(nodes[existingIndex], Object.assign({}, nodes[existingIndex], node))) {
+  if (
+    is.equal(
+      nodes[existingIndex],
+      Object.assign({}, nodes[existingIndex], node)
+    )
+  ) {
     return shouldRerender
   }
 

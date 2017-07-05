@@ -1,7 +1,7 @@
-import {nodes} from './constants'
+import { nodes } from './constants'
 
 const removeDeletedNodes = (shouldRerender, graph, node, i) => {
-  const existingIndex = graph.nodes.findIndex((d) => {
+  const existingIndex = graph.nodes.findIndex(d => {
     return d.id === node.id
   })
 

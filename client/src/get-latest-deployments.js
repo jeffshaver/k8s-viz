@@ -1,4 +1,4 @@
-const getLatestDeployments = (deployments) => {
+const getLatestDeployments = deployments => {
   /*
   {
     namespace: {
@@ -9,7 +9,7 @@ const getLatestDeployments = (deployments) => {
   */
   const latestDeployments = {}
 
-  deployments.forEach((deployment) => {
+  deployments.forEach(deployment => {
     const deploymentName = deployment.metadata.name
 
     if (!latestDeployments[deploymentName]) {
@@ -19,9 +19,13 @@ const getLatestDeployments = (deployments) => {
     }
 
     const deploymentCreationDate = deployment.metadata.creationTimestamp
-    const latestDeploymentCreationDate = latestDeployments[deploymentName].metadata.creationTimestamp
+    const latestDeploymentCreationDate =
+      latestDeployments[deploymentName].metadata.creationTimestamp
 
-    if (new Date(deploymentCreationDate).getTime() > new Date(latestDeploymentCreationDate).getTime()) {
+    if (
+      new Date(deploymentCreationDate).getTime() >
+      new Date(latestDeploymentCreationDate).getTime()
+    ) {
       latestDeployments[deploymentName] = deployment
     }
   })

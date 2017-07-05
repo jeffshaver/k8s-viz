@@ -1,7 +1,7 @@
-import {links} from './constants'
+import { links } from './constants'
 
 const modifyExistingLinks = (shouldRerender, link) => {
-  const existingIndex = links.findIndex((d) => {
+  const existingIndex = links.findIndex(d => {
     return d.source.id + '-' + d.target.id === link.source + '-' + link.target
   })
 
@@ -12,7 +12,10 @@ const modifyExistingLinks = (shouldRerender, link) => {
     return shouldRerender
   }
 
-  if (links[existingIndex].source.id === link.source && links[existingIndex].target.id === link.target) {
+  if (
+    links[existingIndex].source.id === link.source &&
+    links[existingIndex].target.id === link.target
+  ) {
     return shouldRerender
   }
 

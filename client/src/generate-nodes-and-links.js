@@ -1,84 +1,142 @@
 import getLatestDeployments from './get-latest-deployments'
-import {height, width} from './constants'
+import { height, width } from './constants'
 
-const findDeploymentNode = (deploymentNodes, pod) => {
-  const deploymentNode = deploymentNodes.find((deploymentNode) => {
-    const {ownerReferences} = pod.metadata
+const createLink = (source, target) => ({
+  source,
+  target,
+  value: 1
+})
+
+// (attachedNode, kubeItem)
+const createLinkForNode = ({ id }, { metadata: { name } }) =>
+  createLink(id, id + '_' + name)
+
+const createNamespaceNode = (namespace, groupNumber) => {
+  const { name } = namespace.metadata
+  const namespaceNode = {
+    id: name,
+    group: groupNumber,
+    tooltip: {
+      Type: 'namespace',
+      Name: name
+    }
+  }
+
+  if (namespace.x) {
+    namespaceNode.x = namespace.x
+    namespaceNode.y = namespace.y
+  }
+
+  return namespaceNode
+}
+
+const createDaemonsetNode = (daemonset, { id: namespaceId, group }) => {
+  const { name } = daemonset.metadata
+  const daemonsetNode = {
+    id: namespaceId + '_' + name,
+    name: name,
+    group,
+    tooltip: {
+      Type: 'daemonset',
+      Name: name,
+      Namespace: namespaceId
+    }
+  }
+
+  if (daemonset.x) {
+    daemonsetNode.x = daemonset.x
+    daemonsetNode.y = daemonset.y
+  }
+
+  return daemonsetNode
+}
+
+const findDaemonsetNode = (daemonsetNodes, kubeItem) => {}
+
+const findDeploymentNode = (deploymentNodes, kubeItem) => {
+  const deploymentNode = deploymentNodes.find(deploymentNode => {
+    const { ownerReferences = [] } = kubeItem.metadata
     const ownerReference = ownerReferences[0]
 
     if (!ownerReference) {
       return
     }
 
-    return pod.metadata.namespace + '_' + ownerReference.name === deploymentNode.id
+    return (
+      kubeItem.metadata.namespace + '_' + ownerReference.name ===
+      deploymentNode.id
+    )
   })
 
   return deploymentNode
 }
 
-const findNamespaceNode = (namespaceNodes, pod) => {
-  const namespaceNode = namespaceNodes.find((namespaceNode) => {
-    return pod.metadata.namespace === namespaceNode.id
-  })
+const findNamespaceNode = (namespaceNodes, kubeItem) => {
+  const namespaceNode = namespaceNodes.find(
+    namespaceNode => kubeItem.metadata.namespace === namespaceNode.id
+  )
 
   return namespaceNode
 }
 
-const findAttachedNode = (deploymentNodes, namespaceNodes, pod) => {
+const findAttachedNode = (
+  daemonsetNodes,
+  deploymentNodes,
+  namespaceNodes,
+  pod
+) => {
   let attachedNode = findDeploymentNode(deploymentNodes, pod)
   let attachedNodeIsNamespace = false
 
   if (attachedNode) {
-    return {attachedNode, attachedNodeIsNamespace}
+    return { attachedNode, attachedNodeIsNamespace }
   }
 
   attachedNode = findNamespaceNode(namespaceNodes, pod)
   attachedNodeIsNamespace = !!attachedNode
 
-  return {attachedNode, attachedNodeIsNamespace}
+  return { attachedNode, attachedNodeIsNamespace }
 }
 
-const generateNodesAndLinks = ({namespaces, deployments, pods}) => {
-  let groupNumber = 1
+const generateNodesAndLinks = ({
+  daemonsets,
+  deployments,
+  namespaces,
+  pods
+}) => {
   const cx = width / 2
   const cy = height / 2
-  let nodes = [{id: 'master', name: 'master', group: groupNumber++, fx: cx, fy: cy}]
+  let groupNumber = 1
+  let nodes = [
+    { id: 'master', name: 'master', group: groupNumber++, fx: cx, fy: cy }
+  ]
   let links = []
+
   const namespaceNodes = []
   const namespaceLinks = []
 
-  namespaces.forEach((namespace) => {
-    const namespaceNode = {
-      id: namespace.metadata.name,
-      group: groupNumber++,
-      tooltip: {
-        Type: 'namespace',
-        Name: namespace.metadata.name
-      }
-    }
+  namespaces.forEach(namespace => {
+    namespaceNodes.push(createNamespaceNode(namespace, groupNumber++))
+    namespaceLinks.push(createLink('master', namespace.metadata.name))
+  })
 
-    if (namespace.x) {
-      namespaceNode.x = namespace.x
-      namespaceNode.y = namespace.y
-    }
+  const daemonsetNodes = []
+  const daemonsetLinks = []
 
-    namespaceNodes.push(namespaceNode)
-    namespaceLinks.push({
-      source: 'master',
-      target: namespace.metadata.name,
-      value: 1
-    })
+  daemonsets.forEach(daemonset => {
+    const namespaceNode = findNamespaceNode(namespaceNodes, daemonset)
+
+    daemonsetNodes.push(createDaemonsetNode(daemonset, namespaceNode))
+    daemonsetLinks.push(createLinkForNode(namespaceNode, daemonset))
   })
 
   const latestDeployments = getLatestDeployments(deployments)
   const deploymentNodes = []
   const deploymentLinks = []
 
-  Object.keys(latestDeployments).forEach((deploymentName) => {
+  Object.keys(latestDeployments).forEach(deploymentName => {
     const deployment = latestDeployments[deploymentName]
-    const namespaceNode = namespaceNodes.find((node) => {
-      return node.id === deployment.metadata.namespace
-    })
+    const namespaceNode = findNamespaceNode(namespaceNodes, deployment)
     const deploymentNode = {
       id: namespaceNode.id + '_' + deployment.metadata.name,
       name: deployment.metadata.name,
@@ -106,21 +164,24 @@ const generateNodesAndLinks = ({namespaces, deployments, pods}) => {
   const podNodes = []
   const podLinks = []
 
-  pods.forEach((pod) => {
+  pods.forEach(pod => {
     const status = pod.metadata.deletionTimestamp
       ? 'terminating'
-      : (
-        pod.status.containerStatuses
+      : pod.status.containerStatuses
         ? Object.keys(pod.status.containerStatuses[0].state)[0]
         : 'Unscheduleable'
-      )
     let reason
 
     if (status === 'waiting') {
       reason = pod.status.containerStatuses[0].state[status].reason
     }
 
-    const {attachedNode, attachedNodeIsNamespace} = findAttachedNode(deploymentNodes, namespaceNodes, pod)
+    const { attachedNode, attachedNodeIsNamespace } = findAttachedNode(
+      daemonsetNodes,
+      deploymentNodes,
+      namespaceNodes,
+      pod
+    )
 
     if (!attachedNode) {
       return
@@ -151,14 +212,24 @@ const generateNodesAndLinks = ({namespaces, deployments, pods}) => {
 
     podNodes.push(podNode)
     podLinks.push({
-      source: deploymentNode.id,
-      target: deploymentNode.id + '_' + pod.metadata.name,
+      source: attachedNode.id,
+      target: attachedNode.id + '_' + pod.metadata.name,
       value: 1
     })
   })
 
-  nodes = nodes.concat(namespaceNodes, deploymentNodes, podNodes)
-  links = links.concat(namespaceLinks, deploymentLinks, podLinks)
+  nodes = nodes.concat(
+    namespaceNodes,
+    daemonsetNodes,
+    deploymentNodes,
+    podNodes
+  )
+  links = links.concat(
+    namespaceLinks,
+    daemonsetLinks,
+    deploymentLinks,
+    podLinks
+  )
 
   return {
     nodes,

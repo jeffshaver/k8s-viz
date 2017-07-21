@@ -59,7 +59,7 @@ const openConnections = {
   pods: false
 }
 const typeMap = {
-  DaemonSets: 'daemonset',
+  DaemonSet: 'daemonset',
   Namespace: 'namespace',
   Pod: 'pod',
   ReplicationController: 'deployment'
@@ -134,5 +134,7 @@ connectDeployments()
 connectPods()
 
 app.listen(3000, () => {
+  /* eslint-disable no-console */
   console.log('app listening on port 3000')
+  /* eslint-enable no-console */
 })

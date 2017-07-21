@@ -19,7 +19,8 @@ const createNamespaceNode = (namespace, groupNumber) => {
     tooltip: {
       Type: 'namespace',
       Name: name
-    }
+    },
+    type: 'Namespace'
   }
 
   if (namespace.x) {
@@ -34,13 +35,14 @@ const createDaemonsetNode = (daemonset, { id: namespaceId, group }) => {
   const { name } = daemonset.metadata
   const daemonsetNode = {
     id: namespaceId + '_' + name,
-    name: name,
+    name,
     group,
     tooltip: {
       Type: 'daemonset',
       Name: name,
       Namespace: namespaceId
-    }
+    },
+    type: 'Daemonset'
   }
 
   if (daemonset.x) {
@@ -51,24 +53,41 @@ const createDaemonsetNode = (daemonset, { id: namespaceId, group }) => {
   return daemonsetNode
 }
 
-const findDaemonsetNode = (daemonsetNodes, kubeItem) => {}
+const createDeploymentNode = (deployment, { id: namespaceId, group }) => {
+  const { name } = deployment.metadata
+  const deploymentNode = {
+    id: namespaceId + '_' + name,
+    name,
+    group,
+    tooltip: {
+      Type: 'deployment',
+      Name: name,
+      Namespace: namespaceId
+    },
+    type: 'Deployment'
+  }
 
-const findDeploymentNode = (deploymentNodes, kubeItem) => {
-  const deploymentNode = deploymentNodes.find(deploymentNode => {
-    const { ownerReferences = [] } = kubeItem.metadata
-    const ownerReference = ownerReferences[0]
-
-    if (!ownerReference) {
-      return
-    }
-
-    return (
-      kubeItem.metadata.namespace + '_' + ownerReference.name ===
-      deploymentNode.id
-    )
-  })
+  if (deployment.x) {
+    deploymentNode.x = deployment.x
+    deploymentNode.y = deployment.y
+  }
 
   return deploymentNode
+}
+
+const findOwnerNode = (nodes, kubeItem) => {
+  const { ownerReferences = [] } = kubeItem.metadata
+  const ownerReference = ownerReferences[0]
+
+  if (!ownerReference) {
+    return
+  }
+
+  const ownerNode = nodes.find(node => {
+    return kubeItem.metadata.namespace + '_' + ownerReference.name === node.id
+  })
+
+  return ownerNode
 }
 
 const findNamespaceNode = (namespaceNodes, kubeItem) => {
@@ -85,17 +104,24 @@ const findAttachedNode = (
   namespaceNodes,
   pod
 ) => {
-  let attachedNode = findDeploymentNode(deploymentNodes, pod)
-  let attachedNodeIsNamespace = false
+  let attachedNode = findOwnerNode(deploymentNodes, pod)
+  let attachedNodeType = 'Deployment'
 
   if (attachedNode) {
-    return { attachedNode, attachedNodeIsNamespace }
+    return { attachedNode, attachedNodeType }
+  }
+
+  attachedNode = findOwnerNode(daemonsetNodes, pod)
+  attachedNodeType = 'Daemonset'
+
+  if (attachedNode) {
+    return { attachedNode, attachedNodeType }
   }
 
   attachedNode = findNamespaceNode(namespaceNodes, pod)
-  attachedNodeIsNamespace = !!attachedNode
+  attachedNodeType = 'Namespace'
 
-  return { attachedNode, attachedNodeIsNamespace }
+  return { attachedNode, attachedNodeType }
 }
 
 const generateNodesAndLinks = ({
@@ -137,28 +163,9 @@ const generateNodesAndLinks = ({
   Object.keys(latestDeployments).forEach(deploymentName => {
     const deployment = latestDeployments[deploymentName]
     const namespaceNode = findNamespaceNode(namespaceNodes, deployment)
-    const deploymentNode = {
-      id: namespaceNode.id + '_' + deployment.metadata.name,
-      name: deployment.metadata.name,
-      group: namespaceNode.group,
-      tooltip: {
-        Type: 'deployment',
-        Name: deployment.metadata.name,
-        Namespace: namespaceNode.id
-      }
-    }
 
-    if (deployment.x) {
-      deploymentNode.x = deployment.x
-      deploymentNode.y = deployment.y
-    }
-
-    deploymentNodes.push(deploymentNode)
-    deploymentLinks.push({
-      source: namespaceNode.id,
-      target: namespaceNode.id + '_' + deployment.metadata.name,
-      value: 1
-    })
+    deploymentNodes.push(createDeploymentNode(deployment, namespaceNode))
+    deploymentLinks.push(createLinkForNode(namespaceNode, deployment))
   })
 
   const podNodes = []
@@ -176,7 +183,7 @@ const generateNodesAndLinks = ({
       reason = pod.status.containerStatuses[0].state[status].reason
     }
 
-    const { attachedNode, attachedNodeIsNamespace } = findAttachedNode(
+    const { attachedNode, attachedNodeType } = findAttachedNode(
       daemonsetNodes,
       deploymentNodes,
       namespaceNodes,
@@ -187,6 +194,30 @@ const generateNodesAndLinks = ({
       return
     }
 
+    let Namespace
+    let Deployment
+    let DaemonSet
+
+    switch (attachedNodeType) {
+      case 'Deployment':
+        Namespace = attachedNode.id.split('_')[0]
+        Deployment = attachedNode.id.split('_')[1]
+        DaemonSet = 'n/a'
+        break
+      case 'DaemonSet':
+        Namespace = attachedNode.id.split('_')[0]
+        Deployment = 'n/a'
+        DaemonSet = attachedNode.id.split('_')[1]
+        break
+      case 'Namespace':
+        Namespace = attachedNode.id
+        Deployment = 'n/a'
+        DaemonSet = 'n/a'
+        break
+      default:
+        break
+    }
+
     const podNode = {
       id: attachedNode.id + '_' + pod.metadata.name,
       name: pod.metadata.name,
@@ -195,12 +226,9 @@ const generateNodesAndLinks = ({
       tooltip: {
         Type: 'pod',
         Name: pod.metadata.name,
-        Namespace: attachedNodeIsNamespace
-          ? attachedNode.id
-          : attachedNode.id.split('_')[0],
-        Deployment: attachedNodeIsNamespace
-          ? 'N/A'
-          : attachedNode.id.split('_')[1],
+        Namespace,
+        Deployment,
+        DaemonSet,
         Status: status + (!reason ? '' : `: ${reason}`)
       }
     }

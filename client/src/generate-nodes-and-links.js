@@ -112,7 +112,7 @@ const findAttachedNode = (
   }
 
   attachedNode = findOwnerNode(daemonsetNodes, pod)
-  attachedNodeType = 'Daemonset'
+  attachedNodeType = 'DaemonSet'
 
   if (attachedNode) {
     return { attachedNode, attachedNodeType }

@@ -11,6 +11,7 @@ ENV PORT ${PORT}
 WORKDIR /opt/app/client
 
 COPY client/package.json /opt/app/client/package.json
+COPY client/package-lock.json /opt/app/client/package-lock.json
 
 RUN npm install \
   && rm -rf \
@@ -20,6 +21,7 @@ RUN npm install \
 WORKDIR /opt/app/server
 
 COPY server/package.json /opt/app/server/package.json
+COPY server/package-lock.json /opt/app/server/package-lock.json
 
 RUN npm install \
   && rm -rf \

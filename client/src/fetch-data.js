@@ -12,15 +12,17 @@ import {
   width
 } from './constants'
 
+const eventTypes = ['ADDED', 'MODIFIED', 'DELETED']
 const nodeTypes = { daemonsets, deployments, namespaces, pods }
-const websocketURI = `ws://${window.location.host}/namespaces`
+const websocketURI = `wss://${window.location.host}/namespaces`
 const websocket = new ReconnectingWebSocket(websocketURI)
 
 websocket.addEventListener('message', event => {
   const eventData = JSON.parse(event.data)
+  const isUpdate = !!eventData.type
 
-  if (eventData.type) {
-    if (!['ADDED', 'MODIFIED', 'DELETED'].includes(eventData.type)) {
+  if (isUpdate) {
+    if (!eventTypes.includes(eventData.type)) {
       return
     }
 
@@ -33,48 +35,30 @@ websocket.addEventListener('message', event => {
       eventData.object.x = width / 2
       eventData.object.y = height / 2
       array.push(eventData.object)
-      appendToEventLog(
-        `${eventData.type} ${eventData.object.metadata.name} to ${eventData
-          .object.metadata.namespace}`
-      )
+      appendModificationToEventLog(eventData)
     }
 
     if (eventData.type === 'MODIFIED') {
       array[existingIndex] = eventData.object
-      appendToEventLog(
-        `${eventData.type} ${eventData.object.metadata.name} in ${eventData
-          .object.metadata.namespace}`
-      )
+      appendModificationToEventLog(eventData)
     }
 
     if (eventData.type === 'DELETED') {
       array.splice(existingIndex, 1)
-      appendToEventLog(
-        `${eventData.type} ${eventData.object.metadata.name} from ${eventData
-          .object.metadata.namespace}`
-      )
+      appendModificationToEventLog(eventData)
     }
   } else {
     const isInitialAddition =
       namespaces.length === 0 && deployments.length === 0 && pods.length === 0
 
     if (isInitialAddition) {
-      appendToEventLog(
-        `initial addition of ${eventData.namespaces.length} namespaces`
-      )
-      appendToEventLog(
-        `initial addition of ${eventData.daemonsets.length} daemonsets`
-      )
-      appendToEventLog(
-        `initial addition of ${eventData.deployments.length} deployments`
-      )
-      appendToEventLog(`initial addition of ${eventData.pods.length} pods`)
+      Object.keys(nodeTypes).forEach(nodeType => {
+        appendToEventLog(
+          `initial addition of ${eventData[nodeType].length} ${nodeType}`
+        )
+        nodeTypes[nodeType].push(...eventData[nodeType])
+      })
     }
-
-    namespaces.push(...eventData.namespaces)
-    daemonsets.push(...eventData.daemonsets)
-    deployments.push(...eventData.deployments)
-    pods.push(...eventData.pods)
   }
 
   const nodesAndLinks = generateNodesAndLinks({
@@ -91,3 +75,10 @@ websocket.addEventListener('message', event => {
 
   render()
 })
+
+function appendModificationToEventLog(eventData) {
+  appendToEventLog(
+    `${eventData.type} ${eventData.object.metadata.name} in ${eventData.object
+      .metadata.namespace}`
+  )
+}

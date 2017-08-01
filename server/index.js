@@ -1,15 +1,26 @@
 require('dotenv').config({ path: '../.env', silent: true })
 
+const https = require('https')
+const fs = require('fs')
 const path = require('path')
 const express = require('express')
 const compression = require('compression')
 const serveStatic = require('serve-static')
 const k8s = require('k8s')
-
 const namespacesRoute = require('./routes/namespaces')
 const modifyOnWatch = require('./modify-on-watch')
 
-const { KUBERNETES_ENDPOINT, KUBERNETES_TOKEN, NAMESPACE } = process.env
+const {
+  KUBERNETES_ENDPOINT,
+  KUBERNETES_TOKEN,
+  NAMESPACE,
+  SERVER_CERT_PATH,
+  SERVER_KEY_PATH
+} = process.env
+const serverOptions = {
+  cert: fs.readFileSync(SERVER_CERT_PATH),
+  key: fs.readFileSync(SERVER_KEY_PATH)
+}
 const kubeApiOptions = {
   auth: {
     token: KUBERNETES_TOKEN
@@ -24,8 +35,9 @@ const kubeBetaApi = k8s.api(
   Object.assign({}, kubeApiOptions, { version: '/apis/extensions/v1beta1' })
 )
 const app = express()
+const httpsServer = https.createServer(serverOptions, app)
 
-require('express-ws')(app)
+require('express-ws')(app, httpsServer)
 
 app.use(compression())
 
@@ -133,7 +145,7 @@ connectDaemonsets()
 connectDeployments()
 connectPods()
 
-app.listen(3000, () => {
+httpsServer.listen(3000, () => {
   /* eslint-disable no-console */
   console.log('app listening on port 3000')
   /* eslint-enable no-console */

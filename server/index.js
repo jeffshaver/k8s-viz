@@ -45,7 +45,8 @@ app.use(compression())
 
 const websockets = []
 const namespaces = []
-const deployments = []
+const replicasets = []
+const replicationcontrollers = []
 const daemonsets = []
 const pods = []
 
@@ -54,19 +55,29 @@ app.use(
   serveStatic(path.join(__dirname, '../', 'client/dist/bundle.js'))
 )
 app.ws('/namespaces', ws => {
-  namespacesRoute(websockets, ws, namespaces, deployments, daemonsets, pods)
+  namespacesRoute(
+    websockets,
+    ws,
+    namespaces,
+    replicasets,
+    replicationcontrollers,
+    daemonsets,
+    pods
+  )
 })
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../', 'client/dist/index.html'))
 })
 
 const modifyNamespaces = modifyOnWatch(namespaces)
-const modifyDeployments = modifyOnWatch(deployments)
-const modifyDaemonsets = modifyOnWatch(daemonsets)
+const modifyReplicaSets = modifyOnWatch(replicasets)
+const modifyReplicationControllers = modifyOnWatch(replicationcontrollers)
+const modifyDaemonSets = modifyOnWatch(daemonsets)
 const modifyPods = modifyOnWatch(pods)
 const openConnections = {
   daemonsets: false,
-  deployments: false,
+  replicasets: false,
+  replicationcontrollers: false,
   namespaces: false,
   pods: false
 }
@@ -74,7 +85,8 @@ const typeMap = {
   DaemonSet: 'daemonset',
   Namespace: 'namespace',
   Pod: 'pod',
-  ReplicationController: 'deployment'
+  ReplicationController: 'replicationcontroller',
+  ReplicaSet: 'replicaset'
 }
 
 const watchTimeout = 90000
@@ -82,7 +94,14 @@ const onWatchSuccess = (modifyFn, connectionName) => {
   return data => {
     data = Object.assign(data, { nodeType: typeMap[data.object.kind] })
     openConnections[connectionName] = true
-    modifyFn(data, websockets, namespaces, deployments, pods)
+    modifyFn(
+      data,
+      websockets,
+      namespaces,
+      replicasets,
+      replicationcontrollers,
+      pods
+    )
   }
 }
 const onWatchError = (connectionName, connect) => {
@@ -94,10 +113,13 @@ const onWatchError = (connectionName, connect) => {
 }
 
 const namespacesEndpoint = `watch/namespaces${NAMESPACE ? '/' + NAMESPACE : ''}`
-const daemonsetsEndpoint = NAMESPACE
+const daemonSetsEndpoint = NAMESPACE
   ? `watch/namespaces${NAMESPACE ? '/' + NAMESPACE : ''}/daemonsets`
   : 'watch/daemonsets'
-const deploymentsEndpoint = NAMESPACE
+const replicaSetsEndpoint = NAMESPACE
+  ? `watch/namespaces/${NAMESPACE}/replicasets`
+  : 'watch/replicasets'
+const replicationControllersEndpoint = NAMESPACE
   ? `watch/namespaces/${NAMESPACE}/replicationcontrollers`
   : 'watch/replicationcontrollers'
 const podsEndpoint = NAMESPACE
@@ -113,20 +135,29 @@ const connectNamespaces = () => {
   )
 }
 
-const connectDaemonsets = () => {
+const connectDaemonSets = () => {
   kubeBetaApi.watch(
-    daemonsetsEndpoint,
-    onWatchSuccess(modifyDaemonsets, 'daemonsets'),
-    onWatchError('daemonsets', connectDaemonsets),
+    daemonSetsEndpoint,
+    onWatchSuccess(modifyDaemonSets, 'daemonsets'),
+    onWatchError('daemonsets', connectDaemonSets),
     watchTimeout
   )
 }
 
-const connectDeployments = () => {
+const connectReplicaSets = () => {
+  kubeBetaApi.watch(
+    replicaSetsEndpoint,
+    onWatchSuccess(modifyReplicaSets, 'replicasets'),
+    onWatchError('replicasets', connectReplicaSets),
+    watchTimeout
+  )
+}
+
+const connectReplicationControllers = () => {
   kubeApi.watch(
-    deploymentsEndpoint,
-    onWatchSuccess(modifyDeployments, 'deployments'),
-    onWatchError('deployments', connectDeployments),
+    replicationControllersEndpoint,
+    onWatchSuccess(modifyReplicationControllers, 'replicationcontrollers'),
+    onWatchError('replicationcontrollers', connectReplicationControllers),
     watchTimeout
   )
 }
@@ -141,8 +172,9 @@ const connectPods = () => {
 }
 
 connectNamespaces()
-connectDaemonsets()
-connectDeployments()
+connectDaemonSets()
+connectReplicaSets()
+connectReplicationControllers()
 connectPods()
 
 httpsServer.listen(3000, () => {

@@ -2,7 +2,8 @@ const namespaces = (
   websockets,
   ws,
   namespaces,
-  deployments,
+  replicasets,
+  replicationcontrollers,
   daemonsets,
   pods
 ) => {
@@ -18,7 +19,8 @@ const namespaces = (
   ws.send(
     JSON.stringify({
       namespaces,
-      deployments,
+      replicasets,
+      replicationcontrollers,
       daemonsets,
       pods
     })

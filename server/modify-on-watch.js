@@ -1,7 +1,14 @@
 const sendNodesAndLinks = require('./send-nodes-and-links')
 
 const modifyOnWatch = array => {
-  return function(data, websockets, namespaces, deployments, pods) {
+  return function(
+    data,
+    websockets,
+    namespaces,
+    replicasets,
+    replicationcontrollers,
+    pods
+  ) {
     if (!['ADDED', 'MODIFIED', 'DELETED'].includes(data.type)) {
       return
     }

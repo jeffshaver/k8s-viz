@@ -5,15 +5,22 @@ import ReconnectingWebSocket from 'reconnecting-websocket'
 import render from './render'
 import {
   daemonsets,
-  deployments,
   height,
   namespaces,
   pods,
+  replicasets,
+  replicationcontrollers,
   width
 } from './constants'
 
 const eventTypes = ['ADDED', 'MODIFIED', 'DELETED']
-const nodeTypes = { daemonsets, deployments, namespaces, pods }
+const nodeTypes = {
+  daemonsets,
+  replicasets,
+  replicationcontrollers,
+  namespaces,
+  pods
+}
 const websocketURI = `wss://${window.location.host}/namespaces`
 const websocket = new ReconnectingWebSocket(websocketURI)
 
@@ -49,7 +56,10 @@ websocket.addEventListener('message', event => {
     }
   } else {
     const isInitialAddition =
-      namespaces.length === 0 && deployments.length === 0 && pods.length === 0
+      namespaces.length === 0 &&
+      replicasets.length === 0 &&
+      replicationcontrollers.length === 0 &&
+      pods.length === 0
 
     if (isInitialAddition) {
       Object.keys(nodeTypes).forEach(nodeType => {
@@ -63,7 +73,8 @@ websocket.addEventListener('message', event => {
 
   const nodesAndLinks = generateNodesAndLinks({
     daemonsets,
-    deployments,
+    replicasets,
+    replicationcontrollers,
     namespaces,
     pods
   })

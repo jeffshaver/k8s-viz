@@ -15,7 +15,8 @@ const links = []
 const nodes = []
 const namespaces = []
 const daemonsets = []
-const deployments = []
+const replicasets = []
+const replicationcontrollers = []
 const pods = []
 
 // Other things
@@ -53,7 +54,6 @@ tooltip.append('div').attr('class', 'name')
 
 export {
   daemonsets,
-  deployments,
   eventLogElement,
   height,
   link,
@@ -65,6 +65,8 @@ export {
   pods,
   prevNodesLength,
   renderTimeout,
+  replicasets,
+  replicationcontrollers,
   setLink,
   setMouseIsDown,
   setNode,

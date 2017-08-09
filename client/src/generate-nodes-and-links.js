@@ -1,4 +1,4 @@
-import getLatestDeployments from './get-latest-deployments'
+import getLatestKubeItem from './get-latest-kube-item'
 import { height, width } from './constants'
 
 const createLink = (source, target) => ({
@@ -53,26 +53,50 @@ const createDaemonsetNode = (daemonset, { id: namespaceId, group }) => {
   return daemonsetNode
 }
 
-const createDeploymentNode = (deployment, { id: namespaceId, group }) => {
-  const { name } = deployment.metadata
-  const deploymentNode = {
+const createReplicaSetNode = (replicaSet, { id: namespaceId, group }) => {
+  const { name } = replicaSet.metadata
+  const replicaSetNode = {
     id: namespaceId + '_' + name,
     name,
     group,
     tooltip: {
-      Type: 'deployment',
+      Type: 'replicaset',
       Name: name,
       Namespace: namespaceId
     },
-    type: 'Deployment'
+    type: 'ReplicaSet'
   }
 
-  if (deployment.x) {
-    deploymentNode.x = deployment.x
-    deploymentNode.y = deployment.y
+  if (replicaSet.x) {
+    replicaSetNode.x = replicaSet.x
+    replicaSetNode.y = replicaSet.y
   }
 
-  return deploymentNode
+  return replicaSetNode
+}
+const createReplicationControllerNode = (
+  replicationController,
+  { id: namespaceId, group }
+) => {
+  const { name } = replicationController.metadata
+  const replicationControllerNode = {
+    id: namespaceId + '_' + name,
+    name,
+    group,
+    tooltip: {
+      Type: 'replicationcontroller',
+      Name: name,
+      Namespace: namespaceId
+    },
+    type: 'ReplicationController'
+  }
+
+  if (replicationController.x) {
+    replicationControllerNode.x = replicationController.x
+    replicationControllerNode.y = replicationController.y
+  }
+
+  return replicationControllerNode
 }
 
 const findOwnerNode = (nodes, kubeItem) => {
@@ -100,12 +124,20 @@ const findNamespaceNode = (namespaceNodes, kubeItem) => {
 
 const findAttachedNode = (
   daemonsetNodes,
-  deploymentNodes,
+  replicaSetNodes,
+  replicationControllerNodes,
   namespaceNodes,
   pod
 ) => {
-  let attachedNode = findOwnerNode(deploymentNodes, pod)
-  let attachedNodeType = 'Deployment'
+  let attachedNode = findOwnerNode(replicaSetNodes, pod)
+  let attachedNodeType = 'ReplicaSet'
+
+  if (attachedNode) {
+    return { attachedNode, attachedNodeType }
+  }
+
+  attachedNode = findOwnerNode(replicationControllerNodes, pod)
+  attachedNodeType = 'ReplicationController'
 
   if (attachedNode) {
     return { attachedNode, attachedNodeType }
@@ -126,9 +158,10 @@ const findAttachedNode = (
 
 const generateNodesAndLinks = ({
   daemonsets,
-  deployments,
   namespaces,
-  pods
+  pods,
+  replicasets,
+  replicationcontrollers
 }) => {
   const cx = width / 2
   const cy = height / 2
@@ -156,16 +189,38 @@ const generateNodesAndLinks = ({
     daemonsetLinks.push(createLinkForNode(namespaceNode, daemonset))
   })
 
-  const latestDeployments = getLatestDeployments(deployments)
-  const deploymentNodes = []
-  const deploymentLinks = []
+  const latestReplicaSets = getLatestKubeItem(replicasets)
+  const replicaSetNodes = []
+  const replicaSetLinks = []
 
-  Object.keys(latestDeployments).forEach(deploymentName => {
-    const deployment = latestDeployments[deploymentName]
-    const namespaceNode = findNamespaceNode(namespaceNodes, deployment)
+  Object.keys(latestReplicaSets).forEach(replicaSetName => {
+    const replicaSet = latestReplicaSets[replicaSetName]
+    const namespaceNode = findNamespaceNode(namespaceNodes, replicaSet)
 
-    deploymentNodes.push(createDeploymentNode(deployment, namespaceNode))
-    deploymentLinks.push(createLinkForNode(namespaceNode, deployment))
+    replicaSetNodes.push(createReplicaSetNode(replicaSet, namespaceNode))
+    replicaSetLinks.push(createLinkForNode(namespaceNode, replicaSet))
+  })
+
+  const latestReplicationControllers = getLatestKubeItem(replicationcontrollers)
+  const replicationControllerNodes = []
+  const replicationControllerLinks = []
+
+  Object.keys(
+    latestReplicationControllers
+  ).forEach(replicationControllerName => {
+    const replicationController =
+      latestReplicationControllers[replicationControllerName]
+    const namespaceNode = findNamespaceNode(
+      namespaceNodes,
+      replicationController
+    )
+
+    replicationControllerNodes.push(
+      createReplicationControllerNode(replicationController, namespaceNode)
+    )
+    replicationControllerLinks.push(
+      createLinkForNode(namespaceNode, replicationController)
+    )
   })
 
   const podNodes = []
@@ -185,7 +240,8 @@ const generateNodesAndLinks = ({
 
     const { attachedNode, attachedNodeType } = findAttachedNode(
       daemonsetNodes,
-      deploymentNodes,
+      replicaSetNodes,
+      replicationControllerNodes,
       namespaceNodes,
       pod
     )
@@ -195,23 +251,33 @@ const generateNodesAndLinks = ({
     }
 
     let Namespace
-    let Deployment
     let DaemonSet
+    let ReplicaSet
+    let ReplicationController
 
     switch (attachedNodeType) {
-      case 'Deployment':
-        Namespace = attachedNode.id.split('_')[0]
-        Deployment = attachedNode.id.split('_')[1]
-        DaemonSet = 'n/a'
-        break
       case 'DaemonSet':
         Namespace = attachedNode.id.split('_')[0]
-        Deployment = 'n/a'
+        ReplicaSet = 'n/a'
+        ReplicationController = 'n/a'
         DaemonSet = attachedNode.id.split('_')[1]
         break
       case 'Namespace':
         Namespace = attachedNode.id
-        Deployment = 'n/a'
+        ReplicaSet = 'n/a'
+        ReplicationController = 'n/a'
+        DaemonSet = 'n/a'
+        break
+      case 'ReplicaSet':
+        Namespace = attachedNode.id.split('_')[0]
+        ReplicaSet = attachedNode.id.split('_')[1]
+        ReplicationController = 'n/a'
+        DaemonSet = 'n/a'
+        break
+      case 'ReplicationController':
+        Namespace = attachedNode.id.split('_')[0]
+        ReplicaSet = 'n/a'
+        ReplicationController = attachedNode.id.split('_')[1]
         DaemonSet = 'n/a'
         break
       default:
@@ -227,8 +293,9 @@ const generateNodesAndLinks = ({
         Type: 'pod',
         Name: pod.metadata.name,
         Namespace,
-        Deployment,
         DaemonSet,
+        ReplicaSet,
+        ReplicationController,
         Status: status + (!reason ? '' : `: ${reason}`)
       }
     }
@@ -249,13 +316,15 @@ const generateNodesAndLinks = ({
   nodes = nodes.concat(
     namespaceNodes,
     daemonsetNodes,
-    deploymentNodes,
+    replicaSetNodes,
+    replicationControllerNodes,
     podNodes
   )
   links = links.concat(
     namespaceLinks,
     daemonsetLinks,
-    deploymentLinks,
+    replicaSetLinks,
+    replicationControllerLinks,
     podLinks
   )
 

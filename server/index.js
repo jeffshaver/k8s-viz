@@ -28,6 +28,19 @@ const kubeApiOptions = {
   endpoint: KUBERNETES_ENDPOINT,
   strictSSL: false
 }
+const apis = {
+  stable: k8s.api(Object.assign({}, kubeApiOptions, { version: '/api/v1' })),
+  app: k8s.api(
+    Object.assign({}, kubeApiOptions, { version: '/apis/apps/v1beta1' })
+  ),
+  beta: k8s.api(
+    Object.assign({}, kubeApiOptions, { version: '/apis/extensions/v1beta1' })
+  ),
+  batch: k8s.api(
+    Object.assign({}, kubeApiOptions, { version: '/apis/batch/v1' })
+  )
+}
+
 const kubeApi = k8s.api(
   Object.assign({}, kubeApiOptions, { version: '/api/v1' })
 )
@@ -44,138 +57,110 @@ app.use(compression())
 // actual code
 
 const websockets = []
-const namespaces = []
-const replicasets = []
-const replicationcontrollers = []
-const daemonsets = []
-const pods = []
+const kubeItems = {}
+const watchTimeout = 90000
+
+const endpoints = [
+  {
+    name: 'namespaces',
+    app: false,
+    batch: false,
+    beta: false,
+    path: `watch/namespaces${NAMESPACE ? '/' + NAMESPACE : ''}`
+  },
+  {
+    name: 'daemonsets',
+    app: false,
+    batch: false,
+    beta: true,
+    path: NAMESPACE
+      ? `watch/namespaces${NAMESPACE ? '/' + NAMESPACE : ''}/daemonsets`
+      : 'watch/daemonsets'
+  },
+  {
+    name: 'replicasets',
+    app: false,
+    batch: false,
+    beta: true,
+    path: NAMESPACE
+      ? `watch/namespaces/${NAMESPACE}/replicasets`
+      : 'watch/replicasets'
+  },
+  {
+    name: 'replicationcontrollers',
+    app: false,
+    batch: false,
+    beta: false,
+    path: NAMESPACE
+      ? `watch/namespaces/${NAMESPACE}/replicationcontrollers`
+      : 'watch/replicationcontrollers'
+  },
+  {
+    name: 'statefulsets',
+    app: true,
+    batch: false,
+    beta: false,
+    path: NAMESPACE
+      ? `watch/namespaces/${NAMESPACE}/statefulsets`
+      : 'watch/statefulsets'
+  },
+  {
+    name: 'jobs',
+    app: false,
+    batch: true,
+    beta: false,
+    path: NAMESPACE ? `watch/namespaces/${NAMESPACE}/jobs` : 'watch/jobs'
+  },
+  {
+    name: 'pods',
+    app: false,
+    batch: false,
+    beta: false,
+    path: NAMESPACE ? `watch/namespaces/${NAMESPACE}/pods` : 'watch/pods'
+  }
+]
+
+endpoints.forEach(({ app, batch, beta, name, path }) => {
+  const array = []
+  const modify = modifyOnWatch(array)
+  const connect = () => {
+    const apiType =
+      (batch && 'batch') || (beta && 'beta') || (app && 'app') || 'stable'
+    apis[apiType].watch(
+      path,
+      onWatchSuccess(modify, name),
+      onWatchError(name, connect),
+      watchTimeout
+    )
+  }
+
+  kubeItems[name] = array
+
+  connect()
+
+  function onWatchSuccess(modifyFn, connectionName) {
+    return data => {
+      data = Object.assign(data, { nodeType: data.object.kind.toLowerCase() })
+      modifyFn(data, websockets)
+    }
+  }
+  function onWatchError(connectionName, connect) {
+    return () => {
+      connect()
+    }
+  }
+})
 
 app.use(
   '/bundle.js',
   serveStatic(path.join(__dirname, '../', 'client/dist/bundle.js'))
 )
 app.ws('/namespaces', ws => {
-  namespacesRoute(
-    websockets,
-    ws,
-    namespaces,
-    replicasets,
-    replicationcontrollers,
-    daemonsets,
-    pods
-  )
+  namespacesRoute(websockets, ws, kubeItems)
 })
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../', 'client/dist/index.html'))
 })
-
-const modifyNamespaces = modifyOnWatch(namespaces)
-const modifyReplicaSets = modifyOnWatch(replicasets)
-const modifyReplicationControllers = modifyOnWatch(replicationcontrollers)
-const modifyDaemonSets = modifyOnWatch(daemonsets)
-const modifyPods = modifyOnWatch(pods)
-const openConnections = {
-  daemonsets: false,
-  replicasets: false,
-  replicationcontrollers: false,
-  namespaces: false,
-  pods: false
-}
-const typeMap = {
-  DaemonSet: 'daemonset',
-  Namespace: 'namespace',
-  Pod: 'pod',
-  ReplicationController: 'replicationcontroller',
-  ReplicaSet: 'replicaset'
-}
-
-const watchTimeout = 90000
-const onWatchSuccess = (modifyFn, connectionName) => {
-  return data => {
-    data = Object.assign(data, { nodeType: typeMap[data.object.kind] })
-    openConnections[connectionName] = true
-    modifyFn(
-      data,
-      websockets,
-      namespaces,
-      replicasets,
-      replicationcontrollers,
-      pods
-    )
-  }
-}
-const onWatchError = (connectionName, connect) => {
-  return () => {
-    // console.log(connectionName, 'closed; reconnecting')
-
-    connect()
-  }
-}
-
-const namespacesEndpoint = `watch/namespaces${NAMESPACE ? '/' + NAMESPACE : ''}`
-const daemonSetsEndpoint = NAMESPACE
-  ? `watch/namespaces${NAMESPACE ? '/' + NAMESPACE : ''}/daemonsets`
-  : 'watch/daemonsets'
-const replicaSetsEndpoint = NAMESPACE
-  ? `watch/namespaces/${NAMESPACE}/replicasets`
-  : 'watch/replicasets'
-const replicationControllersEndpoint = NAMESPACE
-  ? `watch/namespaces/${NAMESPACE}/replicationcontrollers`
-  : 'watch/replicationcontrollers'
-const podsEndpoint = NAMESPACE
-  ? `watch/namespaces/${NAMESPACE}/pods`
-  : 'watch/pods'
-
-const connectNamespaces = () => {
-  kubeApi.watch(
-    namespacesEndpoint,
-    onWatchSuccess(modifyNamespaces, 'namespaces'),
-    onWatchError('namespaces', connectNamespaces),
-    watchTimeout
-  )
-}
-
-const connectDaemonSets = () => {
-  kubeBetaApi.watch(
-    daemonSetsEndpoint,
-    onWatchSuccess(modifyDaemonSets, 'daemonsets'),
-    onWatchError('daemonsets', connectDaemonSets),
-    watchTimeout
-  )
-}
-
-const connectReplicaSets = () => {
-  kubeBetaApi.watch(
-    replicaSetsEndpoint,
-    onWatchSuccess(modifyReplicaSets, 'replicasets'),
-    onWatchError('replicasets', connectReplicaSets),
-    watchTimeout
-  )
-}
-
-const connectReplicationControllers = () => {
-  kubeApi.watch(
-    replicationControllersEndpoint,
-    onWatchSuccess(modifyReplicationControllers, 'replicationcontrollers'),
-    onWatchError('replicationcontrollers', connectReplicationControllers),
-    watchTimeout
-  )
-}
-
-const connectPods = () => {
-  kubeApi.watch(
-    podsEndpoint,
-    onWatchSuccess(modifyPods, 'pods'),
-    onWatchError('pods', connectPods),
-    watchTimeout
-  )
-}
-
-connectNamespaces()
-connectDaemonSets()
-connectReplicaSets()
-connectReplicationControllers()
-connectPods()
 
 httpsServer.listen(3000, () => {
   /* eslint-disable no-console */

@@ -6,19 +6,23 @@ import render from './render'
 import {
   daemonsets,
   height,
+  jobs,
   namespaces,
   pods,
   replicasets,
   replicationcontrollers,
+  statefulsets,
   width
 } from './constants'
 
 const eventTypes = ['ADDED', 'MODIFIED', 'DELETED']
 const nodeTypes = {
+  namespaces,
   daemonsets,
+  jobs,
   replicasets,
   replicationcontrollers,
-  namespaces,
+  statefulsets,
   pods
 }
 const websocketURI = `wss://${window.location.host}/namespaces`
@@ -56,9 +60,11 @@ websocket.addEventListener('message', event => {
     }
   } else {
     const isInitialAddition =
+      jobs.length === 0 &&
       namespaces.length === 0 &&
       replicasets.length === 0 &&
       replicationcontrollers.length === 0 &&
+      statefulsets.length === 0 &&
       pods.length === 0
 
     if (isInitialAddition) {
@@ -71,13 +77,7 @@ websocket.addEventListener('message', event => {
     }
   }
 
-  const nodesAndLinks = generateNodesAndLinks({
-    daemonsets,
-    replicasets,
-    replicationcontrollers,
-    namespaces,
-    pods
-  })
+  const nodesAndLinks = generateNodesAndLinks(nodeTypes)
   const shouldRerender = mergeNodesAndLinks(nodesAndLinks)
 
   if (!shouldRerender) {

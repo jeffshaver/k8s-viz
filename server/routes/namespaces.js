@@ -1,12 +1,4 @@
-const namespaces = (
-  websockets,
-  ws,
-  namespaces,
-  replicasets,
-  replicationcontrollers,
-  daemonsets,
-  pods
-) => {
+const namespaces = (websockets, ws, kubeItems) => {
   websockets.push(ws)
   ws.on('close', () => {
     const index = websockets.findIndex(websocket => {
@@ -16,15 +8,7 @@ const namespaces = (
     websockets.splice(index, 1)
   })
 
-  ws.send(
-    JSON.stringify({
-      namespaces,
-      replicasets,
-      replicationcontrollers,
-      daemonsets,
-      pods
-    })
-  )
+  ws.send(JSON.stringify(kubeItems))
 }
 
 module.exports = namespaces

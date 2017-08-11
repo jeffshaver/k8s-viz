@@ -13,10 +13,12 @@ let node = svg.append('g').attr('class', 'nodes').selectAll('circle')
 
 const links = []
 const nodes = []
+const jobs = []
 const namespaces = []
 const daemonsets = []
 const replicasets = []
 const replicationcontrollers = []
+const statefulsets = []
 const pods = []
 
 // Other things
@@ -56,6 +58,7 @@ export {
   daemonsets,
   eventLogElement,
   height,
+  jobs,
   link,
   links,
   mouseIsDown,
@@ -72,6 +75,7 @@ export {
   setNode,
   setPrevNodesLength,
   setRenderTimeout,
+  statefulsets,
   svg,
   tooltip,
   width

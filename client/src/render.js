@@ -56,14 +56,14 @@ const render = () => {
   simulation.force('link').links(links)
   if (nodes.length > prevNodesLength) {
     simulation.alphaTarget(0.1)
+
+    setRenderTimeout(
+      setTimeout(() => {
+        simulation.alphaTarget(0)
+      }, 2000)
+    )
   }
   simulation.restart()
-
-  setRenderTimeout(
-    setTimeout(() => {
-      simulation.alphaTarget(0)
-    }, 2000)
-  )
 
   return Promise.resolve()
 }

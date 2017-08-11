@@ -7,6 +7,7 @@ const colorStatus = (status = '') => {
     case 'waiting':
       return 'yellow'
     case 'terminating':
+    case 'terminated':
       return 'red'
     default:
       return '#222222'

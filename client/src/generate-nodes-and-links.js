@@ -1,6 +1,9 @@
 import getLatestKubeItem from './get-latest-kube-item'
 import { height, width } from './constants'
 
+const cx = width / 2
+const cy = height / 2
+
 const createLink = (source, target) => ({
   source,
   target,
@@ -12,106 +15,76 @@ const createLinkForNode = ({ id }, { metadata: { name } }) =>
   createLink(id, id + '_' + name)
 
 const createNamespaceNode = (namespace, groupNumber) => {
-  const { name } = namespace.metadata
+  const { name, uid } = namespace.metadata
+  const { kind } = namespace
   const namespaceNode = {
+    uid,
     id: name,
     group: groupNumber,
     tooltip: {
-      Type: 'namespace',
+      Type: kind.toLowerCase(),
       Name: name
     },
-    type: 'Namespace'
-  }
-
-  if (namespace.x) {
-    namespaceNode.x = namespace.x
-    namespaceNode.y = namespace.y
+    type: kind
   }
 
   return namespaceNode
 }
 
-const createDaemonsetNode = (daemonset, { id: namespaceId, group }) => {
-  const { name } = daemonset.metadata
-  const daemonsetNode = {
-    id: namespaceId + '_' + name,
-    name,
-    group,
-    tooltip: {
-      Type: 'daemonset',
-      Name: name,
-      Namespace: namespaceId
-    },
-    type: 'Daemonset'
-  }
-
-  if (daemonset.x) {
-    daemonsetNode.x = daemonset.x
-    daemonsetNode.y = daemonset.y
-  }
-
-  return daemonsetNode
-}
-
-const createReplicaSetNode = (replicaSet, { id: namespaceId, group }) => {
-  const { name } = replicaSet.metadata
-  const replicaSetNode = {
-    id: namespaceId + '_' + name,
-    name,
-    group,
-    tooltip: {
-      Type: 'replicaset',
-      Name: name,
-      Namespace: namespaceId
-    },
-    type: 'ReplicaSet'
-  }
-
-  if (replicaSet.x) {
-    replicaSetNode.x = replicaSet.x
-    replicaSetNode.y = replicaSet.y
-  }
-
-  return replicaSetNode
-}
-const createReplicationControllerNode = (
-  replicationController,
-  { id: namespaceId, group }
+const createSubNode = (
+  kubeItem,
+  { id: namespaceId, group, fx: namespaceX, fy: namespaceY }
 ) => {
-  const { name } = replicationController.metadata
-  const replicationControllerNode = {
-    id: namespaceId + '_' + name,
+  const { name, uid } = kubeItem.metadata
+  const { kind } = kubeItem
+  const node = {
+    uid,
+    id: `${namespaceId}_${name}`,
     name,
     group,
     tooltip: {
-      Type: 'replicationcontroller',
+      Type: kind.toLowerCase(),
       Name: name,
       Namespace: namespaceId
     },
-    type: 'ReplicationController'
+    type: kind
   }
 
-  if (replicationController.x) {
-    replicationControllerNode.x = replicationController.x
-    replicationControllerNode.y = replicationController.y
-  }
-
-  return replicationControllerNode
+  return node
 }
 
-const findOwnerNode = (nodes, kubeItem) => {
-  const { ownerReferences = [] } = kubeItem.metadata
-  const ownerReference = ownerReferences[0]
+const findAttachedNode = (nodes, kubeItem) => {
+  let namespaceNode
+  let attachedNode = nodes.find(node => {
+    switch (node.type) {
+      case 'Job':
+        return kubeItem.metadata.labels['controller-uid'] === node.uid
+      case 'DaemonSet':
+      case 'ReplicaSet':
+      case 'ReplicationController':
+      case 'StatefulSet': {
+        const { ownerReferences = [] } = kubeItem.metadata
+        const ownerReference = ownerReferences[0]
 
-  if (!ownerReference) {
-    return
-  }
+        if (!ownerReference) {
+          return false
+        }
 
-  const ownerNode = nodes.find(node => {
-    return kubeItem.metadata.namespace + '_' + ownerReference.name === node.id
+        return kubeItem.metadata.ownerReferences[0].uid === node.uid
+      }
+      case 'Namespace':
+        namespaceNode = node
+        return false
+      default:
+        return false
+    }
   })
 
-  return ownerNode
+  if (!attachedNode) {
+    attachedNode = namespaceNode
+  }
+
+  return attachedNode
 }
 
 const findNamespaceNode = (namespaceNodes, kubeItem) => {
@@ -122,49 +95,15 @@ const findNamespaceNode = (namespaceNodes, kubeItem) => {
   return namespaceNode
 }
 
-const findAttachedNode = (
-  daemonsetNodes,
-  replicaSetNodes,
-  replicationControllerNodes,
-  namespaceNodes,
-  pod
-) => {
-  let attachedNode = findOwnerNode(replicaSetNodes, pod)
-  let attachedNodeType = 'ReplicaSet'
-
-  if (attachedNode) {
-    return { attachedNode, attachedNodeType }
-  }
-
-  attachedNode = findOwnerNode(replicationControllerNodes, pod)
-  attachedNodeType = 'ReplicationController'
-
-  if (attachedNode) {
-    return { attachedNode, attachedNodeType }
-  }
-
-  attachedNode = findOwnerNode(daemonsetNodes, pod)
-  attachedNodeType = 'DaemonSet'
-
-  if (attachedNode) {
-    return { attachedNode, attachedNodeType }
-  }
-
-  attachedNode = findNamespaceNode(namespaceNodes, pod)
-  attachedNodeType = 'Namespace'
-
-  return { attachedNode, attachedNodeType }
-}
-
 const generateNodesAndLinks = ({
-  daemonsets,
   namespaces,
-  pods,
+  daemonsets,
+  jobs,
   replicasets,
-  replicationcontrollers
+  replicationcontrollers,
+  statefulsets,
+  pods
 }) => {
-  const cx = width / 2
-  const cy = height / 2
   let groupNumber = 1
   let nodes = [
     { id: 'master', name: 'master', group: groupNumber++, fx: cx, fy: cy }
@@ -179,48 +118,40 @@ const generateNodesAndLinks = ({
     namespaceLinks.push(createLink('master', namespace.metadata.name))
   })
 
-  const daemonsetNodes = []
-  const daemonsetLinks = []
+  nodes = nodes.concat(namespaceNodes)
+  links = links.concat(namespaceLinks)
 
-  daemonsets.forEach(daemonset => {
-    const namespaceNode = findNamespaceNode(namespaceNodes, daemonset)
+  const needsLatest = ['replicasets', 'replicationcontrollers', 'statefulsets']
+  const nodeTypes = {
+    daemonsets,
+    jobs,
+    replicasets,
+    replicationcontrollers,
+    statefulsets
+  }
 
-    daemonsetNodes.push(createDaemonsetNode(daemonset, namespaceNode))
-    daemonsetLinks.push(createLinkForNode(namespaceNode, daemonset))
-  })
+  Object.keys(nodeTypes).forEach(nodeType => {
+    let kubeItems = nodeTypes[nodeType]
+    const kubeItemNodes = []
+    const kubeItemLinks = []
 
-  const latestReplicaSets = getLatestKubeItem(replicasets)
-  const replicaSetNodes = []
-  const replicaSetLinks = []
+    if (needsLatest.includes(nodeType)) {
+      let latestKubeItems = getLatestKubeItem(nodeTypes[nodeType])
 
-  Object.keys(latestReplicaSets).forEach(replicaSetName => {
-    const replicaSet = latestReplicaSets[replicaSetName]
-    const namespaceNode = findNamespaceNode(namespaceNodes, replicaSet)
+      kubeItems = Object.keys(latestKubeItems).map(
+        kubeItemName => latestKubeItems[kubeItemName]
+      )
+    }
 
-    replicaSetNodes.push(createReplicaSetNode(replicaSet, namespaceNode))
-    replicaSetLinks.push(createLinkForNode(namespaceNode, replicaSet))
-  })
+    kubeItems.forEach(kubeItem => {
+      const namespaceNode = findNamespaceNode(namespaceNodes, kubeItem)
 
-  const latestReplicationControllers = getLatestKubeItem(replicationcontrollers)
-  const replicationControllerNodes = []
-  const replicationControllerLinks = []
+      kubeItemNodes.push(createSubNode(kubeItem, namespaceNode))
+      kubeItemLinks.push(createLinkForNode(namespaceNode, kubeItem))
+    })
 
-  Object.keys(
-    latestReplicationControllers
-  ).forEach(replicationControllerName => {
-    const replicationController =
-      latestReplicationControllers[replicationControllerName]
-    const namespaceNode = findNamespaceNode(
-      namespaceNodes,
-      replicationController
-    )
-
-    replicationControllerNodes.push(
-      createReplicationControllerNode(replicationController, namespaceNode)
-    )
-    replicationControllerLinks.push(
-      createLinkForNode(namespaceNode, replicationController)
-    )
+    nodes = nodes.concat(kubeItemNodes)
+    links = links.concat(kubeItemLinks)
   })
 
   const podNodes = []
@@ -238,71 +169,38 @@ const generateNodesAndLinks = ({
       reason = pod.status.containerStatuses[0].state[status].reason
     }
 
-    const { attachedNode, attachedNodeType } = findAttachedNode(
-      daemonsetNodes,
-      replicaSetNodes,
-      replicationControllerNodes,
-      namespaceNodes,
-      pod
-    )
+    let attachedNode = findAttachedNode(nodes, pod)
 
     if (!attachedNode) {
       return
     }
 
-    let Namespace
-    let DaemonSet
-    let ReplicaSet
-    let ReplicationController
-
-    switch (attachedNodeType) {
-      case 'DaemonSet':
-        Namespace = attachedNode.id.split('_')[0]
-        ReplicaSet = 'n/a'
-        ReplicationController = 'n/a'
-        DaemonSet = attachedNode.id.split('_')[1]
-        break
-      case 'Namespace':
-        Namespace = attachedNode.id
-        ReplicaSet = 'n/a'
-        ReplicationController = 'n/a'
-        DaemonSet = 'n/a'
-        break
-      case 'ReplicaSet':
-        Namespace = attachedNode.id.split('_')[0]
-        ReplicaSet = attachedNode.id.split('_')[1]
-        ReplicationController = 'n/a'
-        DaemonSet = 'n/a'
-        break
-      case 'ReplicationController':
-        Namespace = attachedNode.id.split('_')[0]
-        ReplicaSet = 'n/a'
-        ReplicationController = attachedNode.id.split('_')[1]
-        DaemonSet = 'n/a'
-        break
-      default:
-        break
+    let tooltip = {
+      Type: 'pod',
+      Name: pod.metadata.name
     }
+
+    if (attachedNode.type === 'Namespace') {
+      tooltip = Object.assign({}, tooltip, { Namespace: attachedNode.id })
+    } else {
+      const attachedNodeNames = attachedNode.id.split('_')
+
+      tooltip = Object.assign({}, tooltip, {
+        Namespace: attachedNodeNames[0],
+        [attachedNode.type]: attachedNodeNames[1]
+      })
+    }
+
+    tooltip = Object.assign({}, tooltip, {
+      Status: status + (!reason ? '' : `: ${reason}`)
+    })
 
     const podNode = {
       id: attachedNode.id + '_' + pod.metadata.name,
       name: pod.metadata.name,
       group: attachedNode.group,
       status,
-      tooltip: {
-        Type: 'pod',
-        Name: pod.metadata.name,
-        Namespace,
-        DaemonSet,
-        ReplicaSet,
-        ReplicationController,
-        Status: status + (!reason ? '' : `: ${reason}`)
-      }
-    }
-
-    if (pod.x) {
-      podNode.x = pod.x
-      podNode.y = pod.y
+      tooltip
     }
 
     podNodes.push(podNode)
@@ -313,20 +211,8 @@ const generateNodesAndLinks = ({
     })
   })
 
-  nodes = nodes.concat(
-    namespaceNodes,
-    daemonsetNodes,
-    replicaSetNodes,
-    replicationControllerNodes,
-    podNodes
-  )
-  links = links.concat(
-    namespaceLinks,
-    daemonsetLinks,
-    replicaSetLinks,
-    replicationControllerLinks,
-    podLinks
-  )
+  nodes = nodes.concat(podNodes)
+  links = links.concat(podLinks)
 
   return {
     nodes,

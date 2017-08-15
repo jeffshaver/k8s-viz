@@ -6,7 +6,7 @@ import {
   forceX,
   forceY
 } from 'd3'
-import { height, link, node, width } from './constants'
+import { height, link, node, serviceNode, width } from './constants'
 
 const simulation = forceSimulation()
   .force('link', forceLink().id(d => d.id))
@@ -24,6 +24,9 @@ function onTick() {
     .attr('x2', d => d.target.x)
     .attr('y2', d => d.target.y)
   node.attr('cx', d => d.x).attr('cy', d => d.y)
+  serviceNode.attr('transform', d => {
+    return 'translate(' + d.x + ',' + d.y + ')'
+  })
 }
 
 // function onEnd () {

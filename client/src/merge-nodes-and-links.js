@@ -2,28 +2,33 @@ import modifyExistingLinks from './modify-existing-links'
 import modifyExistingNodes from './modify-existing-nodes'
 import removeDeletedLinks from './remove-deleted-links'
 import removeDeletedNodes from './remove-deleted-nodes'
-import { links, nodes, setPrevNodesLength } from './constants'
+import { links, nodes, serviceNodes, setPrevNodesLength } from './constants'
 
 let shouldRerender = false
 
 function mergeNodesAndLinks(graph) {
   shouldRerender = false
 
-  setPrevNodesLength(nodes.length)
+  setPrevNodesLength(nodes.concat(serviceNodes).length)
 
-  nodes.forEach((node, i) => {
-    shouldRerender = removeDeletedNodes(shouldRerender, graph, node, i)
-  })
-  graph.nodes.forEach(node => {
-    shouldRerender = modifyExistingNodes(shouldRerender, node)
-  })
+  shouldRerender = removeDeletedNodes(shouldRerender, graph, nodes)
+  shouldRerender = modifyExistingNodes(shouldRerender, graph, nodes)
 
-  links.forEach((link, i) => {
-    shouldRerender = removeDeletedLinks(shouldRerender, graph, link, i)
-  })
-  graph.links.forEach(link => {
-    shouldRerender = modifyExistingLinks(shouldRerender, link)
-  })
+  shouldRerender = removeDeletedNodes(
+    shouldRerender,
+    graph,
+    serviceNodes,
+    'serviceNodes'
+  )
+  shouldRerender = modifyExistingNodes(
+    shouldRerender,
+    graph,
+    serviceNodes,
+    'serviceNodes'
+  )
+
+  shouldRerender = removeDeletedLinks(shouldRerender, graph, links)
+  shouldRerender = modifyExistingLinks(shouldRerender, graph, links)
 
   return shouldRerender
 }

@@ -1,13 +1,24 @@
-import { nodes } from './constants'
+const removeDeletedNodes = (
+  shouldRerender,
+  graph,
+  nodes,
+  graphKey = 'nodes'
+) => {
+  const nodesToSplice = []
 
-const removeDeletedNodes = (shouldRerender, graph, node, i) => {
-  const existingIndex = graph.nodes.findIndex(d => {
-    return d.id === node.id
+  nodes.forEach((node, i) => {
+    const existingIndex = graph[graphKey].findIndex(d => {
+      return d.id === node.id
+    })
+
+    if (existingIndex === -1) {
+      shouldRerender = true
+      nodesToSplice.push(i)
+    }
   })
 
-  if (existingIndex === -1) {
-    shouldRerender = true
-    nodes.splice(i, 1)
+  for (let i = 0; i < nodesToSplice.length; i++) {
+    nodes.splice(nodesToSplice[i] - i, 1)
   }
 
   return shouldRerender

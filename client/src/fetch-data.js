@@ -11,6 +11,7 @@ import {
   pods,
   replicasets,
   replicationcontrollers,
+  services,
   statefulsets,
   width
 } from './constants'
@@ -23,7 +24,8 @@ const nodeTypes = {
   replicasets,
   replicationcontrollers,
   statefulsets,
-  pods
+  pods,
+  services
 }
 const websocketURI = `wss://${window.location.host}/namespaces`
 const websocket = new ReconnectingWebSocket(websocketURI)
@@ -43,8 +45,6 @@ websocket.addEventListener('message', event => {
     })
 
     if (existingIndex === -1 && eventData.type === 'ADDED') {
-      eventData.object.x = width / 2
-      eventData.object.y = height / 2
       array.push(eventData.object)
       appendModificationToEventLog(eventData)
     }
@@ -65,13 +65,21 @@ websocket.addEventListener('message', event => {
       replicasets.length === 0 &&
       replicationcontrollers.length === 0 &&
       statefulsets.length === 0 &&
-      pods.length === 0
+      pods.length === 0 &&
+      services.length === 0
 
     if (isInitialAddition) {
+      appendToEventLog(
+        `initial addition of ${Object.keys(nodeTypes)
+          .map(nodeType => {
+            const number = eventData[nodeType].length
+            return `${number} ${number === 1
+              ? nodeType.substring(0, nodeType.length - 1)
+              : nodeType}`
+          })
+          .join(', ')}`
+      )
       Object.keys(nodeTypes).forEach(nodeType => {
-        appendToEventLog(
-          `initial addition of ${eventData[nodeType].length} ${nodeType}`
-        )
         nodeTypes[nodeType].push(...eventData[nodeType])
       })
     }

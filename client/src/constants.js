@@ -5,14 +5,19 @@ import getSvgDimensions from './get-svg-dimensions'
 
 const svg = select('svg')
 const { height, width } = getSvgDimensions(svg)
+const cx = width / 2
+const cy = height / 2
 const tooltip = select('#chart').append('div').attr('class', 'tooltip')
 let link = svg.append('g').attr('class', 'links').selectAll('line')
 let node = svg.append('g').attr('class', 'nodes').selectAll('circle')
+let serviceNode = svg.select('.nodes').selectAll('path')
 
 // Arrays
 
 const links = []
 const nodes = []
+const serviceNodes = []
+const services = []
 const jobs = []
 const namespaces = []
 const daemonsets = []
@@ -39,6 +44,9 @@ const setMouseIsDown = newMouseIsDown => {
 const setNode = newNode => {
   node = newNode
 }
+const setServiceNode = newServiceNode => {
+  serviceNode = newServiceNode
+}
 const setPrevNodesLength = newNodesLength => {
   prevNodesLength = newNodesLength
 }
@@ -55,6 +63,8 @@ const setRenderTimeout = newRenderTimeout => {
 tooltip.append('div').attr('class', 'name')
 
 export {
+  cx,
+  cy,
   daemonsets,
   eventLogElement,
   height,
@@ -70,11 +80,15 @@ export {
   renderTimeout,
   replicasets,
   replicationcontrollers,
+  serviceNode,
+  serviceNodes,
+  services,
   setLink,
   setMouseIsDown,
   setNode,
   setPrevNodesLength,
   setRenderTimeout,
+  setServiceNode,
   statefulsets,
   svg,
   tooltip,

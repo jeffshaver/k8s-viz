@@ -1,99 +1,14 @@
+import createIntermediateNode from './create-intermediate-node'
+import createNamespaceNode from './create-namespace-node'
+import createPodNode from './create-pod-node'
+import createServiceNode from './create-service-node'
+import findAttachedNode from './find-attached-node'
+import findNamespaceNode from './find-namespace-node'
+import findPodsAttachedToService from './find-pods-attached-to-service'
+import findNodesForKubeItems from './find-nodes-for-kube-items'
 import getLatestKubeItem from './get-latest-kube-item'
-import { height, width } from './constants'
-
-const cx = width / 2
-const cy = height / 2
-
-const createLink = (source, target) => ({
-  source,
-  target,
-  value: 1
-})
-
-// (attachedNode, kubeItem)
-const createLinkForNode = ({ id }, { metadata: { name } }) =>
-  createLink(id, id + '_' + name)
-
-const createNamespaceNode = (namespace, groupNumber) => {
-  const { name, uid } = namespace.metadata
-  const { kind } = namespace
-  const namespaceNode = {
-    uid,
-    id: name,
-    group: groupNumber,
-    tooltip: {
-      Type: kind.toLowerCase(),
-      Name: name
-    },
-    type: kind
-  }
-
-  return namespaceNode
-}
-
-const createSubNode = (
-  kubeItem,
-  { id: namespaceId, group, fx: namespaceX, fy: namespaceY }
-) => {
-  const { name, uid } = kubeItem.metadata
-  const { kind } = kubeItem
-  const node = {
-    uid,
-    id: `${namespaceId}_${name}`,
-    name,
-    group,
-    tooltip: {
-      Type: kind.toLowerCase(),
-      Name: name,
-      Namespace: namespaceId
-    },
-    type: kind
-  }
-
-  return node
-}
-
-const findAttachedNode = (nodes, kubeItem) => {
-  let namespaceNode
-  let attachedNode = nodes.find(node => {
-    switch (node.type) {
-      case 'Job':
-        return kubeItem.metadata.labels['controller-uid'] === node.uid
-      case 'DaemonSet':
-      case 'ReplicaSet':
-      case 'ReplicationController':
-      case 'StatefulSet': {
-        const { ownerReferences = [] } = kubeItem.metadata
-        const ownerReference = ownerReferences[0]
-
-        if (!ownerReference) {
-          return false
-        }
-
-        return kubeItem.metadata.ownerReferences[0].uid === node.uid
-      }
-      case 'Namespace':
-        namespaceNode = node
-        return false
-      default:
-        return false
-    }
-  })
-
-  if (!attachedNode) {
-    attachedNode = namespaceNode
-  }
-
-  return attachedNode
-}
-
-const findNamespaceNode = (namespaceNodes, kubeItem) => {
-  const namespaceNode = namespaceNodes.find(
-    namespaceNode => kubeItem.metadata.namespace === namespaceNode.id
-  )
-
-  return namespaceNode
-}
+import { createLink, createLinkForNode } from './create-link'
+import { cx, cy, height, width } from './constants'
 
 const generateNodesAndLinks = ({
   namespaces,
@@ -102,7 +17,8 @@ const generateNodesAndLinks = ({
   replicasets,
   replicationcontrollers,
   statefulsets,
-  pods
+  pods,
+  services
 }) => {
   let groupNumber = 1
   let nodes = [
@@ -110,16 +26,20 @@ const generateNodesAndLinks = ({
   ]
   let links = []
 
+  // namespace nodes
+
   const namespaceNodes = []
   const namespaceLinks = []
 
   namespaces.forEach(namespace => {
     namespaceNodes.push(createNamespaceNode(namespace, groupNumber++))
-    namespaceLinks.push(createLink('master', namespace.metadata.name))
+    namespaceLinks.push(createLink('master', namespace.metadata.uid))
   })
 
   nodes = nodes.concat(namespaceNodes)
   links = links.concat(namespaceLinks)
+
+  // intermediate nodes
 
   const needsLatest = ['replicasets', 'replicationcontrollers', 'statefulsets']
   const nodeTypes = {
@@ -146,7 +66,7 @@ const generateNodesAndLinks = ({
     kubeItems.forEach(kubeItem => {
       const namespaceNode = findNamespaceNode(namespaceNodes, kubeItem)
 
-      kubeItemNodes.push(createSubNode(kubeItem, namespaceNode))
+      kubeItemNodes.push(createIntermediateNode(kubeItem, namespaceNode))
       kubeItemLinks.push(createLinkForNode(namespaceNode, kubeItem))
     })
 
@@ -154,69 +74,51 @@ const generateNodesAndLinks = ({
     links = links.concat(kubeItemLinks)
   })
 
+  // pod nodes
+
   const podNodes = []
   const podLinks = []
 
   pods.forEach(pod => {
-    const status = pod.metadata.deletionTimestamp
-      ? 'terminating'
-      : pod.status.containerStatuses
-        ? Object.keys(pod.status.containerStatuses[0].state)[0]
-        : 'Unscheduleable'
-    let reason
-
-    if (status === 'waiting') {
-      reason = pod.status.containerStatuses[0].state[status].reason
-    }
-
-    let attachedNode = findAttachedNode(nodes, pod)
+    const attachedNode = findAttachedNode(nodes, pod)
 
     if (!attachedNode) {
       return
     }
 
-    let tooltip = {
-      Type: 'pod',
-      Name: pod.metadata.name
-    }
-
-    if (attachedNode.type === 'Namespace') {
-      tooltip = Object.assign({}, tooltip, { Namespace: attachedNode.id })
-    } else {
-      const attachedNodeNames = attachedNode.id.split('_')
-
-      tooltip = Object.assign({}, tooltip, {
-        Namespace: attachedNodeNames[0],
-        [attachedNode.type]: attachedNodeNames[1]
-      })
-    }
-
-    tooltip = Object.assign({}, tooltip, {
-      Status: status + (!reason ? '' : `: ${reason}`)
-    })
-
-    const podNode = {
-      id: attachedNode.id + '_' + pod.metadata.name,
-      name: pod.metadata.name,
-      group: attachedNode.group,
-      status,
-      tooltip
-    }
-
-    podNodes.push(podNode)
-    podLinks.push({
-      source: attachedNode.id,
-      target: attachedNode.id + '_' + pod.metadata.name,
-      value: 1
-    })
+    podNodes.push(createPodNode(pod, attachedNode))
+    podLinks.push(createLinkForNode(attachedNode, pod))
   })
 
   nodes = nodes.concat(podNodes)
   links = links.concat(podLinks)
 
+  // service nodes
+
+  const serviceNodes = []
+  const serviceLinks = []
+
+  services.forEach(service => {
+    const attachedPods = findPodsAttachedToService(service, pods)
+    const attachedNodes = findNodesForKubeItems(attachedPods, nodes)
+
+    serviceNodes.push(createServiceNode(service, attachedNodes))
+
+    if (attachedNodes.length === 0) {
+      return
+    }
+
+    attachedNodes.forEach(attachedNode => {
+      serviceLinks.push(createLink(attachedNode.id, service.metadata.uid))
+    })
+  })
+
+  links = links.concat(serviceLinks)
+
   return {
     nodes,
-    links
+    links,
+    serviceNodes
   }
 }
 

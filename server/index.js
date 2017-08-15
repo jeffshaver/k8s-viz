@@ -41,12 +41,6 @@ const apis = {
   )
 }
 
-const kubeApi = k8s.api(
-  Object.assign({}, kubeApiOptions, { version: '/api/v1' })
-)
-const kubeBetaApi = k8s.api(
-  Object.assign({}, kubeApiOptions, { version: '/apis/extensions/v1beta1' })
-)
 const app = express()
 const httpsServer = https.createServer(serverOptions, app)
 
@@ -117,6 +111,15 @@ const endpoints = [
     batch: false,
     beta: false,
     path: NAMESPACE ? `watch/namespaces/${NAMESPACE}/pods` : 'watch/pods'
+  },
+  {
+    name: 'services',
+    app: false,
+    batch: false,
+    beta: false,
+    path: NAMESPACE
+      ? `watch/namespaces/${NAMESPACE}/services`
+      : 'watch/services'
   }
 ]
 

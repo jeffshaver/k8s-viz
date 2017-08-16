@@ -6,14 +6,14 @@ import {
   forceX,
   forceY
 } from 'd3'
-import { height, link, node, serviceNode, width } from './constants'
+import { link, node, serviceNode } from './constants'
+import { cx, cy } from './svg'
 
 const simulation = forceSimulation()
   .force('link', forceLink().id(d => d.id))
   .force('charge', forceManyBody().strength(-150))
   .force('x', forceX())
   .force('y', forceY())
-  .force('center', forceCenter(width / 2, height / 2))
   .on('tick', onTick)
 // .on('end', onEnd)
 

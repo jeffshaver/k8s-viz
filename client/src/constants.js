@@ -1,12 +1,9 @@
 import { select } from 'd3'
 import getSvgDimensions from './get-svg-dimensions'
+import { svg } from './svg'
 
 // SVG things
 
-const svg = select('svg')
-const { height, width } = getSvgDimensions(svg)
-const cx = width / 2
-const cy = height / 2
 const tooltip = select('#chart').append('div').attr('class', 'tooltip')
 let link = svg.append('g').attr('class', 'links').selectAll('line')
 let node = svg.append('g').attr('class', 'nodes').selectAll('circle')
@@ -63,11 +60,8 @@ const setRenderTimeout = newRenderTimeout => {
 tooltip.append('div').attr('class', 'name')
 
 export {
-  cx,
-  cy,
   daemonsets,
   eventLogElement,
-  height,
   jobs,
   link,
   links,
@@ -91,6 +85,5 @@ export {
   setServiceNode,
   statefulsets,
   svg,
-  tooltip,
-  width
+  tooltip
 }

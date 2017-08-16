@@ -8,7 +8,7 @@ import findPodsAttachedToService from './find-pods-attached-to-service'
 import findNodesForKubeItems from './find-nodes-for-kube-items'
 import getLatestKubeItem from './get-latest-kube-item'
 import { createLink, createLinkForNode } from './create-link'
-import { cx, cy, height, width } from './constants'
+import { cx, cy, height, width } from './svg'
 
 const generateNodesAndLinks = ({
   namespaces,

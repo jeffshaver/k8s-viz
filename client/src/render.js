@@ -1,4 +1,5 @@
-import colorStatus from './color-status'
+import colorByStatus from './color-by-status'
+import createAlphaTargetTimeout from './create-alpha-target-timeout'
 import dragEnded from './drag-ended'
 import dragged from './dragged'
 import dragStarted from './drag-started'
@@ -6,7 +7,14 @@ import hideTooltip from './hide-tooltip'
 import moveTooltip from './move-tooltip'
 import showTooltip from './show-tooltip'
 import simulation from './simulation'
-import { drag, scaleOrdinal, schemeCategory20, symbol, symbolDiamond } from 'd3'
+import {
+  drag,
+  forceCenter,
+  scaleOrdinal,
+  schemeCategory20,
+  symbol,
+  symbolDiamond
+} from 'd3'
 import {
   link,
   links,
@@ -17,10 +25,11 @@ import {
   serviceNodes,
   setLink,
   setNode,
-  setRenderTimeout,
   setServiceNode
 } from './constants'
+import { cx, cy } from './svg'
 
+const changeAlphaTarget = createAlphaTargetTimeout()
 const color = scaleOrdinal(schemeCategory20)
 
 const render = () => {
@@ -49,7 +58,7 @@ const render = () => {
       )
       .merge(node)
   )
-  node.attr('stroke', d => colorStatus(d.status)).on('mouseover', showTooltip)
+  node.attr('stroke', d => colorByStatus(d.status)).on('mouseover', showTooltip)
 
   setServiceNode(serviceNode.data(serviceNodes, d => d.id))
   serviceNode.exit().remove()
@@ -66,22 +75,18 @@ const render = () => {
       )
       .merge(serviceNode)
   )
-  serviceNode.on('mouseover', showTooltip)
+  serviceNode.attr('stroke', colorByStatus()).on('mouseover', showTooltip)
 
   const allNodes = nodes.concat(serviceNodes)
 
   simulation.nodes(allNodes)
+  simulation.force('center', forceCenter(cx, cy))
   simulation.force('link').links(links)
   if (allNodes.length > prevNodesLength) {
-    simulation.alphaTarget(0.1)
-
-    setRenderTimeout(
-      setTimeout(() => {
-        simulation.alphaTarget(0)
-      }, 4000)
-    )
+    changeAlphaTarget()
+  } else {
+    simulation.restart()
   }
-  simulation.restart()
 
   return Promise.resolve()
 }

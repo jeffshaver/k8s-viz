@@ -9,7 +9,10 @@ const findPodsAttachedToService = (service, pods) => {
   const selectorValue = service.spec.selector[selectorKey]
 
   pods.forEach(pod => {
-    if (pod.metadata.labels[selectorKey] !== selectorValue) {
+    const { labels = {} } = pod.metadata
+    const hasNoLabels = Object.keys(labels).length === 0
+
+    if (hasNoLabels || labels[selectorKey] !== selectorValue) {
       return
     }
 

@@ -12,18 +12,22 @@ const modifyOnWatch = require('./modify-on-watch')
 
 const {
   KUBERNETES_ENDPOINT,
-  KUBERNETES_TOKEN,
+  KUBERNETES_TOKEN_PATH,
   NAMESPACE,
   SERVER_CERT_PATH,
   SERVER_KEY_PATH
 } = process.env
+const kubernetesToken = fs
+  .readFileSync(KUBERNETES_TOKEN_PATH)
+  .toString()
+  .replace('\n', '')
 const serverOptions = {
   cert: fs.readFileSync(SERVER_CERT_PATH),
   key: fs.readFileSync(SERVER_KEY_PATH)
 }
 const kubeApiOptions = {
   auth: {
-    token: KUBERNETES_TOKEN
+    token: kubernetesToken
   },
   endpoint: KUBERNETES_ENDPOINT,
   strictSSL: false

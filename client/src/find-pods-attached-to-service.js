@@ -5,14 +5,19 @@ const findPodsAttachedToService = (service, pods) => {
     return attachedPods
   }
 
+  const { namespace } = service.metadata
   const selectorKey = Object.keys(service.spec.selector)[0]
   const selectorValue = service.spec.selector[selectorKey]
 
   pods.forEach(pod => {
-    const { labels = {} } = pod.metadata
+    const { labels = {}, namespace: podNamespace } = pod.metadata
     const hasNoLabels = Object.keys(labels).length === 0
 
-    if (hasNoLabels || labels[selectorKey] !== selectorValue) {
+    if (
+      namespace !== podNamespace ||
+      hasNoLabels ||
+      labels[selectorKey] !== selectorValue
+    ) {
       return
     }
 

@@ -8,7 +8,11 @@ const namespaces = (websockets, ws, kubeItems) => {
     websockets.splice(index, 1)
   })
 
-  ws.send(JSON.stringify(kubeItems))
+  ws.send(
+    JSON.stringify(
+      Object.assign({}, kubeItems, { namespace: process.env.NAMESPACE })
+    )
+  )
 }
 
 module.exports = namespaces

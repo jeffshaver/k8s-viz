@@ -25,7 +25,9 @@ const pods = []
 
 // Other things
 
+const groups = {}
 const eventLogElement = document.querySelector('ul')
+let nextGroupNumber = 0
 let mouseIsDown = false
 let prevNodesLength = nodes.length
 let renderTimeout
@@ -56,12 +58,20 @@ const setRenderTimeout = newRenderTimeout => {
 
   renderTimeout = newRenderTimeout
 }
+const getGroupNumber = key => {
+  if (groups[key] === undefined) {
+    groups[key] = nextGroupNumber++
+  }
+
+  return groups[key]
+}
 
 tooltip.append('div').attr('class', 'name')
 
 export {
   daemonsets,
   eventLogElement,
+  getGroupNumber,
   jobs,
   link,
   links,

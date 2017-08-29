@@ -59,14 +59,9 @@ websocket.addEventListener('message', event => {
       appendModificationToEventLog(eventData)
     }
   } else {
-    const isInitialAddition =
-      jobs.length === 0 &&
-      namespaces.length === 0 &&
-      replicasets.length === 0 &&
-      replicationcontrollers.length === 0 &&
-      statefulsets.length === 0 &&
-      pods.length === 0 &&
-      services.length === 0
+    const isInitialAddition = Object.keys(nodeTypes)
+      .map(nodeType => nodeTypes[nodeType])
+      .every(nodes => nodes.length === 0)
 
     if (isInitialAddition) {
       appendToEventLog(

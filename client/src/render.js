@@ -51,7 +51,9 @@ const render = () => {
       .on('mousemove', moveTooltip)
       .call(
         drag()
-          .filter(d => d.id !== 'master')
+          .filter(d => {
+            return !d.fx && !d.fy
+          })
           .on('start', dragStarted)
           .on('drag', dragged)
           .on('end', dragEnded)

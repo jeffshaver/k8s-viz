@@ -1,19 +1,15 @@
+import { getGroupNumber } from './constants'
+
 const createServiceNode = (service, attachedNodes) => {
-  const { name, uid: id } = service.metadata
+  const { name, namespace, uid: id } = service.metadata
   const { ports, type } = service.spec
   const { kind } = service
-  let group
-  let attachedIds
-
-  if (attachedNodes.length !== 0) {
-    group = attachedNodes[0].group
-    attachedIds = attachedNodes.map(attachedNode => attachedNode.id)
-  }
 
   let tooltip = {
-    Type: kind.toLowerCase(),
+    Type: kind,
     'Service Type': type,
-    Name: name
+    Name: name,
+    Namespace: namespace
   }
 
   if (ports.length !== 0) {
@@ -32,8 +28,7 @@ const createServiceNode = (service, attachedNodes) => {
 
   const serviceNode = {
     id,
-    group,
-    attachedIds,
+    group: getGroupNumber(namespace),
     name,
     tooltip,
     type: kind

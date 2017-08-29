@@ -1,14 +1,14 @@
 const colorStatus = (status = '') => {
   switch (status.toLowerCase()) {
     case 'pending':
-      return 'blue'
+      return '#7ac2ff'
     case 'running':
-      return 'green'
+      return '#62ff62'
     case 'waiting':
-      return 'yellow'
+      return '#ffff71'
     case 'terminating':
     case 'terminated':
-      return 'red'
+      return '#ff6b6b'
     default:
       return '#222222'
   }

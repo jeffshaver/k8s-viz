@@ -21,9 +21,7 @@ const generateNodesAndLinks = ({
   services
 }) => {
   let groupNumber = 1
-  let nodes = [
-    { id: 'master', name: 'master', group: groupNumber++, fx: cx, fy: cy }
-  ]
+  let nodes = []
   let links = []
 
   // namespace nodes
@@ -33,7 +31,9 @@ const generateNodesAndLinks = ({
 
   namespaces.forEach(namespace => {
     namespaceNodes.push(createNamespaceNode(namespace, groupNumber++))
-    namespaceLinks.push(createLink('master', namespace.metadata.uid))
+    if (namespaces.length > 1) {
+      namespaceLinks.push(createLink('master', namespace.metadata.uid))
+    }
   })
 
   nodes = nodes.concat(namespaceNodes)
@@ -114,6 +114,12 @@ const generateNodesAndLinks = ({
   })
 
   links = links.concat(serviceLinks)
+
+  if (namespaces.length > 1) {
+    nodes.unshift({ id: 'master', name: 'master', group: groupNumber++ })
+  }
+
+  nodes[0] = Object.assign(nodes[0], { fx: cx, fy: cy })
 
   return {
     nodes,

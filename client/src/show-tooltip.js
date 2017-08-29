@@ -2,15 +2,14 @@ import { mouseIsDown, tooltip } from './constants'
 
 const showTooltip = (d, e) => {
   if (mouseIsDown) return
-  tooltip.select('.name').html(
+  tooltip.html(
     d.tooltip
-      ? Object.keys(d.tooltip)
+      ? `<h2>${d.name}</h2>` +
+        Object.keys(d.tooltip)
           .map(key => {
-            return `<span style="font-weight: 400">${key}:</span> ${d.tooltip[
-              key
-            ]}`
+            return `<p><span>${key}:</span> ${d.tooltip[key]}</p>`
           })
-          .join('<br>')
+          .join('')
       : d.name
   )
   tooltip.style('display', 'block')

@@ -7,8 +7,7 @@ const createIntermediateNode = (kubeItem, { group }) => {
     name,
     group,
     tooltip: {
-      Type: kind.toLowerCase(),
-      Name: name,
+      Type: kind,
       Namespace: kubeItem.metadata.namespace
     },
     type: kind

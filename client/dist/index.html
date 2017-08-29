@@ -29,7 +29,7 @@
            url(fonts/roboto-medium.ttf) format('truetype');
     }
     body {
-      background: #222222;
+      background: #FBFBFB;
       box-sizing: border-box;
       font-family: Roboto, sans-serif;
       font-weight: 300;
@@ -45,7 +45,7 @@
       width: 100%;
     }
     .links line {
-      stroke: #999;
+      stroke: #222;
       stroke-opacity: 0.6;
     }
 
@@ -54,18 +54,33 @@
     }
 
     .tooltip {
-      background: #eee;
-      box-shadow: 0 0 5px #999999;
-      color: #333;
+      background: #FDFDFD;
+      border: 1px solid rgba(34, 34, 34, 0.25);
+      box-shadow: 3px 3px 5px rgba(34, 34, 34, 0.25);
+      color: #222;
       display: none;
       font-size: 14px;
+      line-height: 1.25rem;
       padding: 10px;
       position: absolute;
       z-index: 10;
     }
 
+    .tooltip h2 {
+      font-weight: 400;
+      margin: 0 0 .25rem 0;
+    }
+
+    .tooltip p {
+      margin: 0;
+    }
+
+    .tooltip p span {
+      font-weight: 400;
+    }
+
     ul {
-      color: white;
+      color: #222;
       height: 200px;
       width: 100%;
       position: absolute;
@@ -74,7 +89,7 @@
       overflow: auto;
       margin: 0;
       padding: 0;
-      pointer-events: none;
+      z-index: -1;
     }
 
     ul li {

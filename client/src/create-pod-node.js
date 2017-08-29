@@ -1,6 +1,8 @@
+import { getGroupNumber } from './constants'
+
 const createPodNode = (pod, attachedNode) => {
-  const { name, uid: id } = pod.metadata
-  const { kind: type } = attachedNode.data
+  const { name, namespace, uid: id } = pod.metadata
+  const { kind: attachedNodeType } = attachedNode.data
   const status = pod.metadata.deletionTimestamp
     ? 'terminating'
     : pod.status.containerStatuses
@@ -13,11 +15,10 @@ const createPodNode = (pod, attachedNode) => {
   }
 
   let tooltip = {
-    Type: 'pod',
-    Name: pod.metadata.name
+    Type: pod.kind
   }
 
-  if (type === 'Namespace') {
+  if (attachedNodeType === 'Namespace') {
     const { name: namespace } = attachedNode.data.metadata
 
     tooltip = Object.assign({}, tooltip, { Namespace: namespace })
@@ -26,7 +27,7 @@ const createPodNode = (pod, attachedNode) => {
 
     tooltip = Object.assign({}, tooltip, {
       Namespace: namespace,
-      [type]: name
+      [attachedNodeType]: name
     })
   }
 
@@ -37,9 +38,10 @@ const createPodNode = (pod, attachedNode) => {
   const podNode = {
     id,
     name,
-    group: attachedNode.group,
+    group: getGroupNumber(namespace),
     status,
-    tooltip
+    tooltip,
+    type: pod.kind
   }
 
   return podNode

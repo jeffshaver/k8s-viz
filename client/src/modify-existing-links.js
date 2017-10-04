@@ -1,5 +1,10 @@
-const modifyExistingLinks = (shouldRerender, graph, links) => {
-  graph.links.forEach(link => {
+const modifyExistingLinks = (
+  shouldRerender,
+  graph,
+  links,
+  graphKey = 'links'
+) => {
+  graph[graphKey].forEach(link => {
     const existingIndex = links.findIndex(d => {
       return d.source.id + '-' + d.target.id === link.source + '-' + link.target
     })

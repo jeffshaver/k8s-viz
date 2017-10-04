@@ -6,8 +6,16 @@ import { forceCenter, select } from 'd3'
 
 const changeAlphaTarget = createAlphaTargetTimeout()
 const svg = select('svg')
-let height = window.innerHeight
-let width = window.innerWidth
+let height = Number(
+  select('#chart')
+    .style('height')
+    .slice(0, -2)
+)
+let width = Number(
+  select('#chart')
+    .style('width')
+    .slice(0, -2)
+)
 let cx = width / 2
 let cy = height / 2
 
@@ -16,7 +24,7 @@ svg.attr('height', height)
 
 const setSize = (newWidth, newHeight) => {
   width = newWidth
-  newHeight = newHeight
+  height = newHeight
   cx = width / 2
   cy = height / 2
 

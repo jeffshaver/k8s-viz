@@ -36,6 +36,7 @@ const createPodNode = (pod, attachedNode) => {
   })
 
   const podNode = {
+    data: pod,
     id,
     name,
     group: getGroupNumber(namespace),

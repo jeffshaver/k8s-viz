@@ -4,7 +4,7 @@ import simulation from './simulation'
 
 const dragEnded = d => {
   setMouseIsDown(false)
-  if (!d3event.active) simulation.alphaTarget(0)
+  simulation.alphaDecay(0.0228)
   d.fx = null
   d.fy = null
 }

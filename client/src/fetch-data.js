@@ -8,6 +8,7 @@ import {
   height,
   jobs,
   namespaces,
+  persistentvolumes,
   pods,
   replicasets,
   replicationcontrollers,
@@ -25,7 +26,8 @@ const nodeTypes = {
   replicationcontrollers,
   statefulsets,
   pods,
-  services
+  services,
+  persistentvolumes
 }
 const websocketURI = `wss://${window.location.host}/namespaces`
 const websocket = new ReconnectingWebSocket(websocketURI)

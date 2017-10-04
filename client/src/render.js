@@ -13,18 +13,26 @@ import {
   scaleOrdinal,
   schemeCategory20,
   symbol,
-  symbolDiamond
+  symbolDiamond,
+  symbolSquare
 } from 'd3'
 import {
   link,
+  linkNode,
+  linkNodes,
   links,
   node,
   nodes,
+  persistentVolumeNode,
+  persistentVolumeNodes,
+  persistentvolumes,
   prevNodesLength,
   serviceNode,
   serviceNodes,
   setLink,
+  setLinkNode,
   setNode,
+  setPersistentVolumeNode,
   setServiceNode
 } from './constants'
 import { cx, cy } from './svg'
@@ -36,7 +44,12 @@ const render = () => {
   setLink(link.data(links, d => d.source + '-' + d.target))
   link.exit().remove()
   setLink(
-    link.enter().append('line').attr('stroke-width', d => d.value).merge(link)
+    link
+      .enter()
+      .append('line')
+      .attr('stroke', d => color(d.group))
+      .attr('stroke-width', d => d.value)
+      .merge(link)
   )
 
   setNode(node.data(nodes, d => d.id))
@@ -70,16 +83,69 @@ const render = () => {
       .append('path')
       .on('mouseout', hideTooltip)
       .on('mousemove', moveTooltip)
-      .attr('d', symbol().size(100).type(symbolDiamond))
+      .attr(
+        'd',
+        symbol()
+          .size(100)
+          .type(symbolDiamond)
+      )
       .style('fill', d => color(d.group))
       .call(
-        drag().on('start', dragStarted).on('drag', dragged).on('end', dragEnded)
+        drag()
+          .on('start', dragStarted)
+          .on('drag', dragged)
+          .on('end', dragEnded)
       )
       .merge(serviceNode)
   )
   serviceNode.attr('stroke', colorByStatus()).on('mouseover', showTooltip)
 
-  const allNodes = nodes.concat(serviceNodes)
+  setPersistentVolumeNode(
+    persistentVolumeNode.data(persistentVolumeNodes, d => d.id)
+  )
+  persistentVolumeNode.exit().remove()
+  setPersistentVolumeNode(
+    persistentVolumeNode
+      .enter()
+      .append('path')
+      .on('mouseout', hideTooltip)
+      .on('mousemove', moveTooltip)
+      .attr(
+        'd',
+        symbol()
+          .size(100)
+          .type(symbolSquare)
+      )
+      .style('fill', d => color(d.group))
+      .call(
+        drag()
+          .on('start', dragStarted)
+          .on('drag', dragged)
+          .on('end', dragEnded)
+      )
+      .merge(persistentVolumeNode)
+  )
+  persistentVolumeNode
+    .attr('stroke', colorByStatus())
+    .on('mouseover', showTooltip)
+
+  setLinkNode(
+    linkNode.data(linkNodes, d => d.source.id + '-' + d.target.id + '-node')
+  )
+  linkNode.exit().remove()
+  setLinkNode(
+    linkNode
+      .enter()
+      .append('circle')
+      .attr('class', 'link-node')
+      .attr('r', 1)
+      .merge(linkNode)
+  )
+
+  const allNodes = nodes
+    .concat(serviceNodes)
+    .concat(persistentVolumeNodes)
+    .concat(linkNodes)
 
   simulation.nodes(allNodes)
   simulation.force('center', forceCenter(cx, cy))

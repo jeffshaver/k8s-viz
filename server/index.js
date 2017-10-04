@@ -124,6 +124,15 @@ const endpoints = [
     path: NAMESPACE
       ? `watch/namespaces/${NAMESPACE}/services`
       : 'watch/services'
+  },
+  {
+    name: 'persistentvolumes',
+    app: false,
+    batch: false,
+    beta: false,
+    path: NAMESPACE
+      ? `watch/namespacse/${NAMESPACE}/persistentvolumes`
+      : 'watch/persistentvolumes'
   }
 ]
 

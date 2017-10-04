@@ -1,5 +1,7 @@
 import createIntermediateNode from './create-intermediate-node'
+import createLinkNode from './create-link-node'
 import createNamespaceNode from './create-namespace-node'
+import createPersistentVolumeNode from './create-persistent-volume-node'
 import createPodNode from './create-pod-node'
 import createServiceNode from './create-service-node'
 import findAttachedNode from './find-attached-node'
@@ -9,6 +11,7 @@ import findNodesForKubeItems from './find-nodes-for-kube-items'
 import getLatestKubeItem from './get-latest-kube-item'
 import { createLink, createLinkForNode } from './create-link'
 import { cx, cy, height, width } from './svg'
+import { getGroupNumber } from './constants'
 
 const generateNodesAndLinks = ({
   namespaces,
@@ -18,9 +21,15 @@ const generateNodesAndLinks = ({
   replicationcontrollers,
   statefulsets,
   pods,
-  services
+  services,
+  persistentvolumes
 }) => {
-  let groupNumber = 1
+  const masterNode = {
+    id: 'master',
+    name: 'master',
+    group: getGroupNumber('master')
+  }
+  const linkNodes = []
   let nodes = []
   let links = []
 
@@ -30,9 +39,14 @@ const generateNodesAndLinks = ({
   const namespaceLinks = []
 
   namespaces.forEach(namespace => {
-    namespaceNodes.push(createNamespaceNode(namespace, groupNumber++))
+    const namespaceNode = createNamespaceNode(namespace)
+
+    namespaceNodes.push(namespaceNode)
     if (namespaces.length > 1) {
-      namespaceLinks.push(createLink('master', namespace.metadata.uid))
+      namespaceLinks.push(
+        createLink('master', namespace.metadata.uid, namespaceNode.group)
+      )
+      linkNodes.push(createLinkNode(masterNode, namespaceNode))
     }
   })
 
@@ -65,9 +79,11 @@ const generateNodesAndLinks = ({
 
     kubeItems.forEach(kubeItem => {
       const namespaceNode = findNamespaceNode(namespaceNodes, kubeItem)
+      const intermediateNode = createIntermediateNode(kubeItem, namespaceNode)
 
-      kubeItemNodes.push(createIntermediateNode(kubeItem, namespaceNode))
+      kubeItemNodes.push(intermediateNode)
       kubeItemLinks.push(createLinkForNode(namespaceNode, kubeItem))
+      linkNodes.push(createLinkNode(namespaceNode, intermediateNode))
     })
 
     nodes = nodes.concat(kubeItemNodes)
@@ -81,13 +97,15 @@ const generateNodesAndLinks = ({
 
   pods.forEach(pod => {
     const attachedNode = findAttachedNode(nodes, pod)
+    const podNode = createPodNode(pod, attachedNode)
 
     if (!attachedNode) {
       return
     }
 
-    podNodes.push(createPodNode(pod, attachedNode))
+    podNodes.push(podNode)
     podLinks.push(createLinkForNode(attachedNode, pod))
+    linkNodes.push(createLinkNode(attachedNode, podNode))
   })
 
   nodes = nodes.concat(podNodes)
@@ -101,29 +119,65 @@ const generateNodesAndLinks = ({
   services.forEach(service => {
     const attachedPods = findPodsAttachedToService(service, pods)
     const attachedNodes = findNodesForKubeItems(attachedPods, nodes)
+    const serviceNode = createServiceNode(service, attachedNodes)
 
-    serviceNodes.push(createServiceNode(service, attachedNodes))
+    serviceNodes.push(serviceNode)
 
     if (attachedNodes.length === 0) {
       return
     }
 
     attachedNodes.forEach(attachedNode => {
-      serviceLinks.push(createLink(attachedNode.id, service.metadata.uid))
+      serviceLinks.push(
+        createLink(attachedNode.id, service.metadata.uid, serviceNode.group)
+      )
+      linkNodes.push(createLinkNode(attachedNode, serviceNode))
     })
   })
 
   links = links.concat(serviceLinks)
 
+  // persistent volumes
+
+  const persistentVolumeNodes = []
+  const persistentVolumeLinks = []
+
+  persistentvolumes.forEach(persistentVolume => {
+    const attachedNode = findAttachedNode(podNodes, persistentVolume)
+
+    if (!attachedNode) {
+      return
+    }
+
+    const persistentVolumeNode = createPersistentVolumeNode(
+      persistentVolume,
+      attachedNode
+    )
+
+    persistentVolumeNodes.push(persistentVolumeNode)
+    persistentVolumeLinks.push(
+      createLink(
+        attachedNode.id,
+        persistentVolume.metadata.uid,
+        persistentVolumeNode.group
+      )
+    )
+    linkNodes.push(createLinkNode(attachedNode, persistentVolumeNode))
+  })
+
+  links = links.concat(persistentVolumeLinks)
+
   if (namespaces.length > 1) {
-    nodes.unshift({ id: 'master', name: 'master', group: groupNumber++ })
+    nodes.unshift(masterNode)
   }
 
   nodes[0] = Object.assign(nodes[0], { fx: cx, fy: cy })
 
   return {
     nodes,
+    linkNodes,
     links,
+    persistentVolumeNodes,
     serviceNodes
   }
 }

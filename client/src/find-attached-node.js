@@ -20,6 +20,32 @@ const findAttachedNode = (nodes, kubeItem) => {
       case 'Namespace':
         namespaceNode = node
         return false
+      case 'Pod':
+        let isAttached = false
+        const { volumes } = node.data.spec
+        const volumesWithClaims = volumes.filter(
+          volume =>
+            volume.persistentVolumeClaim &&
+            volume.persistentVolumeClaim.claimName
+        )
+
+        if (volumesWithClaims.length === 0) {
+          return false
+        }
+
+        volumesWithClaims.forEach(volume => {
+          if (!kubeItem.spec.claimRef) {
+            return false
+          }
+          if (
+            volume.persistentVolumeClaim.claimName ===
+            kubeItem.spec.claimRef.name
+          ) {
+            isAttached = true
+          }
+        })
+
+        return isAttached
       default:
         return false
     }

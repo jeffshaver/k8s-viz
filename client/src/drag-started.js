@@ -7,7 +7,11 @@ const dragStarted = d => {
   hideTooltip()
   setMouseIsDown(true)
   setRenderTimeout(null)
-  if (!d3event.active) simulation.alphaTarget(0.3).restart()
+  if (!d3event.active)
+    simulation
+      .alpha(0.1)
+      .alphaDecay(0)
+      .restart()
   d.fx = d.x
   d.fy = d.y
 }

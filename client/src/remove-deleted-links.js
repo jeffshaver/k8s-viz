@@ -1,8 +1,13 @@
-const removeDeletedLinks = (shouldRerender, graph, links) => {
+const removeDeletedLinks = (
+  shouldRerender,
+  graph,
+  links,
+  graphKey = 'links'
+) => {
   const linksToSplice = []
 
   links.forEach((link, i) => {
-    const existingIndex = graph.links.findIndex(d => {
+    const existingIndex = graph[graphKey].findIndex(d => {
       return d.source + '-' + d.target === link.source.id + '-' + link.target.id
     })
 

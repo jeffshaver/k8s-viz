@@ -16,6 +16,8 @@
     "express-ws": "^3.0.0",
     "json-stream": "^1.0.0",
     "k8s": "^0.4.12",
+    "morgan": "^1.9.0",
+    "object-path": "^0.11.4",
     "serve-static": "^1.12.1"
   },
   "devDependencies": {

@@ -2,12 +2,13 @@ require('dotenv').config({ path: '../.env', silent: true })
 
 const https = require('https')
 const fs = require('fs')
+const morgan = require('morgan')
 const path = require('path')
 const express = require('express')
 const compression = require('compression')
 const serveStatic = require('serve-static')
 const k8s = require('k8s')
-const namespacesRoute = require('./routes/namespaces')
+const clusterDataRoute = require('./routes/cluster-data')
 const modifyOnWatch = require('./modify-on-watch')
 
 const {
@@ -56,7 +57,9 @@ app.use(compression())
 
 const websockets = []
 const kubeItems = {}
+const clusterData = {}
 const watchTimeout = 90000
+let log = []
 
 const endpoints = [
   {
@@ -138,7 +141,7 @@ const endpoints = [
 
 endpoints.forEach(({ app, batch, beta, name, path }) => {
   const array = []
-  const modify = modifyOnWatch(array)
+  const modify = modifyOnWatch(array, kubeItems, log)
   const connect = () => {
     const apiType =
       (batch && 'batch') || (beta && 'beta') || (app && 'app') || 'stable'
@@ -156,26 +159,33 @@ endpoints.forEach(({ app, batch, beta, name, path }) => {
 
   function onWatchSuccess(modifyFn, connectionName) {
     return data => {
-      data = Object.assign(data, { nodeType: data.object.kind.toLowerCase() })
       modifyFn(data, websockets)
     }
   }
   function onWatchError(connectionName, connect) {
     return () => {
+      // console.log(`${connectionName} closed`)
       connect()
     }
   }
 })
 
+app.use(morgan('dev'))
+
 app.use(
   '/bundle.js',
   serveStatic(path.join(__dirname, '../', 'client/dist/bundle.js'))
 )
-app.ws('/namespaces', ws => {
-  namespacesRoute(websockets, ws, kubeItems)
+app.ws('/cluster-data', ws => {
+  clusterDataRoute(websockets, ws, kubeItems, log)
 })
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../', 'client/dist/index.html'))
+})
+
+app.use(function(err, req, res, next) {
+  console.error(err.stack)
+  res.status(500).send('Something broke!')
 })
 
 httpsServer.listen(3000, () => {

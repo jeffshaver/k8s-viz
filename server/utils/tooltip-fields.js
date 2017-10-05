@@ -40,9 +40,10 @@ const tooltipFields = {
         .join(',<br>' + '&nbsp'.repeat(14))
     }
   },
-  persistentvolume: {
+  persistentvolumeclaim: {
     Kind: 'kind',
-    Namespace: ({ spec: { claimRef: { namespace } = {} } }) => namespace
+    Namespace: 'metadata.namespace',
+    Capacity: 'status.capacity.storage'
   }
 }
 

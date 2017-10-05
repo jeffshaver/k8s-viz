@@ -39,7 +39,7 @@ const simulation = forceSimulation()
   .on('tick', onTick)
 const circleOrPath = kind => {
   switch (kind) {
-    case 'PersistentVolume':
+    case 'PersistentVolumeClaim':
     case 'Service':
       return 'path'
     default:
@@ -48,7 +48,7 @@ const circleOrPath = kind => {
 }
 const getShapeByKubeItemKind = kind => {
   switch (kind) {
-    case 'PersistentVolume':
+    case 'PersistentVolumeClaim':
       return symbolSquare
     case 'Service':
       return symbolDiamond

@@ -40,7 +40,7 @@ const findAttachedKubeItems = (kubeItem, kubeItems) => {
           namespace = currentKubeItem
         }
       case 'Pod':
-        if (kubeItem.kind === 'PersistentVolume') {
+        if (kubeItem.kind === 'PersistentVolumeClaim') {
           let isAttached = false
           const { volumes = [] } = currentKubeItem.spec
           const volumesWithClaims = volumes.filter(
@@ -54,12 +54,8 @@ const findAttachedKubeItems = (kubeItem, kubeItems) => {
           }
 
           volumesWithClaims.forEach(volume => {
-            if (!kubeItem.spec.claimRef) {
-              return false
-            }
             if (
-              volume.persistentVolumeClaim.claimName ===
-              kubeItem.spec.claimRef.name
+              volume.persistentVolumeClaim.claimName === kubeItem.metadata.name
             ) {
               isAttached = true
             }

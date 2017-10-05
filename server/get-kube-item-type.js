@@ -6,8 +6,8 @@ const getKubeItemType = kind => {
       return 'pod'
     case 'Service':
       return 'service'
-    case 'PersistentVolume':
-      return 'persistentvolume'
+    case 'PersistentVolumeClaim':
+      return 'persistentvolumeclaim'
     default:
       return 'intermediate'
   }

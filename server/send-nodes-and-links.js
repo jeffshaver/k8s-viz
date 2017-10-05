@@ -1,10 +1,15 @@
 const createNode = require('./create-node')
 const getGroup = require('./get-group')
 const masterKubeItem = { metadata: { uid: 'master' } }
+const { NAMESPACE } = process.env
 
 const sendNodesAndLinks = (websockets, kubeItems, log) => {
-  let nodes = [{ uid: 'master', name: 'master', group: getGroup('master') }]
+  let nodes = []
   let links = []
+
+  if (!NAMESPACE) {
+    nodes.push({ uid: 'master', name: 'master', group: getGroup('master') })
+  }
 
   Object.keys(kubeItems).forEach(kubeItemType => {
     const kubeItemsForType = kubeItems[kubeItemType]
@@ -17,6 +22,10 @@ const sendNodesAndLinks = (websockets, kubeItems, log) => {
   nodes.forEach(node => {
     const { attachedTo = [], group, uid: source } = node
     attachedTo.forEach(attached => {
+      if (attached === 'master' && NAMESPACE) {
+        return
+      }
+
       const attachedKubeItem =
         attached === 'master' ? masterKubeItem : attached ? attached : {}
       const { metadata: { uid: target } = {} } = attachedKubeItem

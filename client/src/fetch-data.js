@@ -1,5 +1,6 @@
 import ReconnectingWebSocket from 'reconnecting-websocket'
 import differenceBy from 'lodash.differenceby'
+import isEqual from 'lodash.isequal'
 import {
   drag,
   event as d3event,
@@ -37,7 +38,7 @@ const simulation = forceSimulation()
   .force('x', forceX())
   .force('y', forceY())
   .on('tick', onTick)
-const circleOrPath = kind => {
+const getSvgElementType = kind => {
   switch (kind) {
     case 'PersistentVolumeClaim':
     case 'Service':
@@ -90,6 +91,17 @@ websocket.addEventListener('message', event => {
   nodes = nodes.filter(node => !removedNodes.includes(node.uid))
   nodes = Array.prototype.concat.apply(nodes, addedNodes)
 
+  nodes.forEach(node => {
+    const index = eventData.nodes.findIndex(newNode => {
+      return node.uid === newNode.uid
+    })
+    const newNode = eventData.nodes[index]
+
+    if (index > 0 && !isEqual(node, newNode)) {
+      Object.assign(node, newNode)
+    }
+  })
+
   const removedLinks = differenceBy(links, eventData.links, getLinkId).map(
     getLinkId
   )
@@ -119,20 +131,11 @@ websocket.addEventListener('message', event => {
 
       return document.createElementNS(
         'http://www.w3.org/2000/svg',
-        circleOrPath(kind)
+        getSvgElementType(kind)
       )
     })
     .attr('r', 5)
     .attr('fill', d => color(d.group))
-    .attr('stroke', d => {
-      const { tooltip: { Status: status = '' } = {} } = d
-      const reasonStart = status.indexOf(':')
-      const hasReason = reasonStart !== -1
-
-      return colorStatus(
-        status.substring(0, hasReason ? reasonStart : undefined)
-      )
-    })
     .attr('d', d => {
       const { data: { kind } = {} } = d
       const symbolType = getShapeByKubeItemKind(kind)
@@ -147,7 +150,6 @@ websocket.addEventListener('message', event => {
     })
     .on('mouseout', hideTooltip)
     .on('mousemove', moveTooltip)
-    .on('mouseover', showTooltip)
     .call(
       drag()
         .filter(d => {
@@ -158,6 +160,18 @@ websocket.addEventListener('message', event => {
         .on('end', dragEnded)
     )
     .merge(node)
+
+  node
+    .attr('stroke', d => {
+      const { tooltip: { Status: status = '' } = {} } = d
+      const reasonStart = status.indexOf(':')
+      const hasReason = reasonStart !== -1
+
+      return colorStatus(
+        status.substring(0, hasReason ? reasonStart : undefined)
+      )
+    })
+    .on('mouseover', showTooltip)
 
   link = link.data(links, getLinkId)
 
@@ -191,7 +205,7 @@ function onTick() {
   node
     .attr('cx', d => {
       const { data: { kind } = {} } = d
-      const isNotCircle = circleOrPath(kind) !== 'circle'
+      const isNotCircle = getSvgElementType(kind) !== 'circle'
 
       if (isNotCircle) {
         return undefined
@@ -201,7 +215,7 @@ function onTick() {
     })
     .attr('cy', d => {
       const { data: { kind } = {} } = d
-      const isNotCircle = circleOrPath(kind) !== 'circle'
+      const isNotCircle = getSvgElementType(kind) !== 'circle'
 
       if (isNotCircle) {
         return undefined
@@ -211,7 +225,7 @@ function onTick() {
     })
     .attr('transform', d => {
       const { data: { kind } = {} } = d
-      const isNotPath = circleOrPath(kind) !== 'path'
+      const isNotPath = getSvgElementType(kind) !== 'path'
 
       if (isNotPath) {
         return undefined
